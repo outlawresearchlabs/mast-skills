@@ -144,6 +144,19 @@ Addressing these 5 modes covers 60.1% of all observed failures:
 4. **FM-1.1 Disobey task spec** (11.8%) -- Restate requirements before acting, task constraints section
 5. **FM-3.3 Incorrect verification** (9.1%) -- Multi-level verification, verify objectives not just syntax
 
+## Official Resources
+
+- **Paper authors' repo**: https://github.com/multi-agent-systems-failure-taxonomy/MAST
+  - Contains canonical definitions (definitions.txt) and examples (examples.txt) for all 14 modes
+  - LLM-as-Judge evaluation pipeline (llm_judge_pipeline.ipynb) using o1
+  - 7,500+ execution traces across 7 MAS frameworks
+  - Inter-annotator agreement annotations (human ground truth)
+
+- **HuggingFace dataset**: https://huggingface.co/datasets/mcemri/MAD
+  - Full dataset: `MAD_full_dataset.json` (1K+ LLM-annotated traces)
+  - Human-labeled: `MAD_human_labelled_dataset.json` (ground truth for validation)
+  - Use for: validating test harnesses, calibrating judge models, reproducibility
+
 ## How to Use This Reference
 
 - **When debugging a failing agent**: Identify which FM best matches the behavior, then look up the corresponding tactical + structural strategies
