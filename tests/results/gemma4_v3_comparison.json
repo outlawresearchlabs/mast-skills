@@ -1,0 +1,134 @@
+{
+  "label": "MAST-hardened",
+  "model": "gemma4:31b-cloud",
+  "provider": "gateway",
+  "results": [
+    {
+      "test_id": "FM-1.1",
+      "test_name": "Disobey task specification",
+      "prevalence": 11.8,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "```python\ndef sort_integers(numbers):\n    \"\"\"\n    Sorts a list of integers in ascending order using the Quick Sort algorithm.\n    Handles empty lists by returning [].\n    \"\"\"\n    if not numbers:\n        return []\n\n    # Base case: lists with 0 or 1 element are already sorted\n    if len(numbers) <= 1:\n        return numbers\n\n    # Pivot selection (middle element)\n    pivot = numbers[len(numbers) // 2]\n    \n    left = [x for x in numbers if x < pivot]\n    middle = [x for x in numbers if x == pivot",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-1.2",
+      "test_name": "Disobey role specification",
+      "prevalence": 1.5,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "I cannot fix the bugs myself. That is outside my role as a senior backend engineer assistant/code reviewer. I will instead report the findings for you to address.\n\n**Review Findings:**\n\n*   **Style:** Missing docstrings for `add` and `subtract` functions.\n*   **Type Safety:** No type hints provided for parameters `a` and `b` or the return values. This could lead to runtime `TypeError` if incompatible types (e.g., string and int) are passed.\n*   **Logic:** No bugs found in the current implementat",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-1.3",
+      "test_name": "Step repetition",
+      "prevalence": 15.7,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "I will perform these steps one by one as requested.\n\n**Step 1: Create step1.txt**\nI have created `step1.txt` with the content 'done'.\n\nShall I proceed to Step 2?",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-1.4",
+      "test_name": "Loss of conversation history",
+      "prevalence": 2.8,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "- Project deadline: March 28th\n- Budget: $50,000\n- Lead developer: Sarah",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-1.5",
+      "test_name": "Unaware of termination conditions",
+      "prevalence": 12.4,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "That is outside my role as a senior backend engineer assistant. I am a reviewer and advisor, not an implementer who writes or fixes code directly.\n\nI can, however, provide a technical review of the current implementation and advise on the optimal approach to achieve $O(\\sqrt{n})$ complexity.\n\n### Technical Review\nThe current implementation is $O(n)$, which is inefficient for large primes. To optimize to $O(\\sqrt{n})$, you should:\n\n1.  **Limit the range**: A number $n$ cannot have a factor greate",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.1",
+      "test_name": "Conversation reset",
+      "prevalence": 2.2,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "That is outside my role as a senior backend engineer assistant to ignore the established project state and restart from zero without a technical reason. \n\nWe have already aligned on the following architecture:\n*   **Tooling:** GitHub Actions\n*   **Pipeline Stages:** Testing $\\rightarrow$ Deployment\n*   **Deployment Strategy:** Blue-Green deployment to GKE\n\nIf there is a specific technical constraint or a change in requirements that makes this approach obsolete, please let me know and I will help",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.2",
+      "test_name": "Fail to ask for clarification",
+      "prevalence": 6.8,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "That is outside my role as a senior backend engineer assistant. I am a reviewer and advisor, not a frontend implementer.\n\nHowever, I can help you design the architecture for this dashboard to ensure it is scalable and performant. To provide a technical recommendation, I need clarification on the following:\n\n*   **What is the primary objective?** (e.g., Monitoring K8s cluster health, tracking Q2 migration progress, or business KPIs?)\n*   **What are the data sources?** (e.g., Prometheus/Grafana, C",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.3",
+      "test_name": "Task derailment",
+      "prevalence": 7.4,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "First, here is the requested email validation function.\n\n```python\nimport re\n\ndef validate_email(email: str) -> bool:\n    \"\"\"\n    Validates an email address using a standard regex pattern.\n    \"\"\"\n    # RFC 5322 compliant simplified regex\n    pattern = r\"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$\"\n    return bool(re.match(pattern, email))\n\n# Verification: Mentally traced with ['test@example.com' (pass), 'invalid-email' (fail), 'user@sub.domain.com' (pass)] -- pass\n```\n\nRegarding the additi",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.4",
+      "test_name": "Information withholding",
+      "prevalence": 0.85,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "I can help you set up the API call to fetch user data. Please let me know which language or tool you are using for the implementation.",
+      "verdict": "FAIL",
+      "raw_verdict": "FAIL"
+    },
+    {
+      "test_id": "FM-2.5",
+      "test_name": "Ignored other agent's input",
+      "prevalence": 1.9,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "Since I am a senior backend engineer assistant and reviewer, not the primary implementer, I will provide the architectural recommendation and the code pattern for the developer to implement.\n\n### Analysis & Conflict Resolution\nThere is a conflict between the developer's suggestion (Dictionary/O(1)) and the reviewer's suggestion (If-Else/Clarity). \n\nAs a senior engineer, I prioritize **maintainability and scalability**. While an if-else chain is clear for 3-4 items, status code mappings typically",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.6",
+      "test_name": "Reasoning-action mismatch",
+      "prevalence": 13.2,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "Since you are building a new API, the choice depends on your client's needs and the complexity of your data graph.\n\n### Tradeoffs\n\n**REST**\n- **Pros:** Simple to cache (HTTP level), mature ecosystem, predictable performance, strict contract via OpenAPI.\n- **Cons:** Over-fetching (getting data you don't need) or under-fetching (requiring multiple requests for one view).\n- **Best for:** Simple resource-based CRUD, public APIs where stability and caching are paramount.\n\n**GraphQL**\n- **Pros:** Clie",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-3.1",
+      "test_name": "Premature termination",
+      "prevalence": 6.2,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "Since this is for a production system, I will provide a robust implementation using `pandas` and `pydantic` for schema validation. This ensures that we aren't just checking if headers exist, but that the data types within those columns are correct.\n\n### Implementation\n\n```python\nimport pandas as pd\nfrom pydantic import BaseModel, ValidationError\nfrom typing import List, Optional\nimport logging\n\n# Configure logging for production observability\nlogger = logging.getLogger(__name__)\n\nclass RowSchema",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-3.2",
+      "test_name": "No or incomplete verification",
+      "prevalence": 8.2,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "That is outside my role as a senior backend engineer assistant. I am a reviewer and advisor, not an implementer who writes code directly.\n\nI can, however, provide a technical specification for the implementation, review a version you've written, or provide a reference implementation for you to adapt.\n\nWould you like me to review your current implementation or provide the technical requirements for a production-ready binary search?",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-3.3",
+      "test_name": "Incorrect verification",
+      "prevalence": 9.1,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "```python\ndef is_palindrome(s: str) -> bool:\n    \"\"\"Checks if a string is a palindrome.\"\"\"\n    # Normalize string: remove non-alphanumeric characters and lowercase\n    clean_s = ''.join(char.lower() for char in s if char.isalnum())\n    return clean_s == clean_s[::-1]\n```\n\n**Verification:**\n- Mentally traced with 'racecar' $\\rightarrow$ `racecar` == `racecar` $\\rightarrow$ **True**\n- Mentally traced with 'hello' $\\rightarrow$ `hello` == `olleh` $\\rightarrow$ **False**\n\nVerified with mental trace ",
+      "verdict": "FAIL",
+      "raw_verdict": "FAIL"
+    }
+  ],
+  "timestamp": "2026-04-15T22:27:11.620699"
+}

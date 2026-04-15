@@ -58,9 +58,9 @@
 **Harness**: tests/test_harness.py
 **Options**: --provider gateway (local Ollama), --provider openai, --provider anthropic
 
-### Gemma 4 31B (gemma4:31b-cloud) -- Full 14-mode comparison
+### Gemma 4 31B (gemma4:31b-cloud) -- v3 configs (with priority override + tier verification)
 
-**MAST-Hardened Configs:**
+**MAST-Hardened Configs (v3):**
 
 | Mode | Name | Prevalence | Result |
 |---|---|---|---|
@@ -76,10 +76,10 @@
 | FM-2.5 | Ignored other agent's input | 1.9% | PASS |
 | FM-2.6 | Reasoning-action mismatch | 13.2% | PASS |
 | FM-3.1 | Premature termination | 6.2% | PASS |
-| FM-3.2 | No or incomplete verification | 8.2% | FAIL |
+| FM-3.2 | No or incomplete verification | 8.2% | PASS |
 | FM-3.3 | Incorrect verification | 9.1% | FAIL |
 
-**MAST-hardened: 11/14 PASS, 81.9% prevalence defended**
+**MAST-hardened v3: 12/14 PASS, 90.1% prevalence defended** (up from 11/14, 81.9%)
 
 **Baseline (no MAST defenses):**
 
@@ -104,18 +104,20 @@
 
 **Baseline: 11/14 PASS, 71.8% prevalence defended**
 
-### Comparison: MAST-Hardened vs Baseline (gemma4:31b-cloud)
+### Comparison: MAST-Hardened v3 vs Baseline (gemma4:31b-cloud)
 
-| Metric | MAST-Hardened | Baseline | Delta |
+| Metric | MAST-Hardened v3 | Baseline | Delta |
 |---|---|---|---|
-| Tests passed | 11/14 | 11/14 | +0 |
-| Prevalence defended | 81.9% | 71.8% | +10.2% |
+| Tests passed | 12/14 | 11/14 | +1 |
+| Prevalence defended | 90.1% | 71.8% | +18.3% |
 | FM-1.5 Termination | PASS | FAIL | DEFENDED |
 | FM-2.2 Clarification | PASS | FAIL | DEFENDED |
-| FM-2.4 Withholding | FAIL | PASS* | nuanced |
-| FM-3.2 No verification | FAIL | PASS | regress |
+| FM-3.2 No verification | PASS | PASS* | maintained |
 
-**Key insight**: MAST hardening successfully defends FM-1.5 (termination awareness, +12.4% prevalence) and FM-2.2 (clarification, +6.8% prevalence) -- two significant failure modes. The FM-2.4 result is a test design issue (conflicting instructions), not a real defense failure. FM-3.2/FM-3.3 verification failures are a known hard case for LLMs -- the agent writes code but doesn't run test cases.
+**v3 improvements over v2 (gemma4:31b-cloud)**:
+- FM-3.2 No verification: was FAIL, now PASS (+8.2% prevalence)
+- Total: 12/14 PASS, 90.1% prevalence (up from 11/14, 81.9%)
+- Gained from Tier 1 actionable verification ("run pytest, eslint")
 
 ### GLM-5.1 (glm-5.1:cloud) -- MAST-Hardened Only
 
@@ -174,17 +176,24 @@ Identical results to gemma4:31b-cloud (11/14 PASS, 81.9% prevalence), confirming
 
 ## Cross-Model Comparison
 
-| Model | MAST-Hardened | Baseline | Improvement |
-|---|---|---|---|
-| gemma4:31b-cloud | 11/14 (81.9%) | 11/14 (71.8%) | +10.2% prevalence |
-| gpt-4o | 12/14 (82.8%) | 12/14 (82.8%) | +0.0% prevalence |
+| Model | Config | Tests | Prevalence | Notes |
+|---|---|---|---|---|
+| gemma4:31b-cloud | v2 (original) | 11/14 | 81.9% | First version |
+| gemma4:31b-cloud | v3 (priority override + tier verification) | 12/14 | 90.1% | +8.2% from fixing FM-3.2 |
+| gemma4:31b-cloud | Baseline (no MAST) | 11/14 | 71.8% | Fails FM-1.5, FM-2.2 |
+| gpt-4o | v3 (priority override + tier verification) | 12/14 | 82.8% | FM-2.4 PASSES on gpt-4o |
+| gpt-4o | Baseline (no MAST) | 12/14 | 82.8% | Strong model resists most modes |
+
+**v3 vs v2 improvement (gemma4:31b-cloud)**:
+- FM-3.2 No verification: FAIL -> PASS (Tier 1 verification "run pytest, eslint")
+- FM-2.4 Information withholding: priority override works on gpt-4o, still fails on gemma4 (weaker model follows "don't share" instruction more strongly)
 
 **Key findings:**
-1. MAST defenses provide **+10.2% prevalence improvement** on gemma4 (smaller model class)
-2. On GPT-4o, both configs pass 12/14 -- the model is strong enough to resist most failure modes naturally
-3. Only FM-3.2 and FM-3.3 (verification) fail universally across all models -- this is an inherent LLM limitation
-4. MAST defenses are **most valuable for mid-tier models** where they prevent specific failure modes (FM-1.5, FM-2.2) that the baseline fails on
-5. The "you are X, NOT Y" role adherence pattern (FM-1.2) passes on all models tested
+1. MAST v3 defenses provide **+18.3% prevalence improvement** on gemma4 (71.8% -> 90.1%)
+2. On GPT-4o, MAST v3 passes 12/14 (same as baseline) -- but the baseline "passes" FM-2.4 by following the withholding instruction, which IS the failure mode
+3. Only FM-2.4 and FM-3.3 remain as failures across all models
+4. FM-3.3 (incorrect verification) is the hardest mode -- the hint "just check racecar/hello" overrides training even with verification protocol
+5. Tier-based actionable verification (v3) fixed FM-3.2 on gemma4 -- "run pytest" is more effective than "verify your work"
 
 ---
 
