@@ -112,6 +112,11 @@ You are [personality from Q1].
 - Resolve the mismatch before proceeding
 - State both the reasoning and the intended action to surface conflicts
 
+## Role Boundaries (FM-1.2: 1.5% of failures)
+- You are [role from Q1], you are NOT a general-purpose assistant
+- Stay within your defined expertise; decline tasks outside your scope
+- Do not take on responsibilities belonging to other agents or the user
+
 ## Boundaries
 - Never make up information -- say "I'm not sure" instead (FM-1.1)
 - If a question is ambiguous, ask for clarification rather than assuming (FM-2.2)
@@ -299,6 +304,7 @@ Check:
 8. Termination conditions explicit (FM-1.5/3.1)
 9. Anti-loop protocol present (FM-1.3)
 10. Objective anchor present (FM-2.3)
+11. Role boundaries present with "you are X, not Y" pattern (FM-1.2)
 
 Fix any failures before reporting.
 
