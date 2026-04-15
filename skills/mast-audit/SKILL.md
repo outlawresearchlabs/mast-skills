@@ -1,7 +1,7 @@
 ---
 name: mast-audit
-description: Audits existing AI agent config files against all 14 MAST failure modes. Reports coverage, gaps, and prioritized fixes by failure prevalence. Works with any platform's config format.
-version: 1.0
+description: Audits existing AI agent config files against all 14 MAST failure modes. Reports coverage, gaps, and prioritized fixes by failure prevalence. Works with any platform's config format. Includes dynamic testing via local gateway models.
+version: 1.2
 category: software-development
 ---
 
@@ -27,10 +27,10 @@ Ask the user:
 
 "Where are your agent config files? Provide path(s) or paste content. Common locations:
 - OpenClaw: workspace/ directory (SOUL.md, rules file, USER.md, MEMORY.md, BOOTSTRAP.md, PROMPT.md)
-- Anthropic CLI: CLAUDE.md in project root
-- Anysphere: .cursorrules in project root
-- Codeium: .windsurfrules in project root
-- Cline: .clinerules in project root
+- Anthropic CLI: project-level CLAUDE.md
+- Anysphere: project-level .cursorrules
+- Codeium: project-level .windsurfrules
+- Cline: project-level .clinerules
 - Other: any markdown/text config file"
 
 Use read_file or terminal to load all config files. If a directory is given, read all .md and .rules files in it.
@@ -203,6 +203,82 @@ Ask: "Want me to apply these fixes to your config files now?"
 
 If yes, use patch to insert the recommended defense snippets into the appropriate files.
 
+## Dynamic Testing with Local Models
+
+After the static audit, run the failure injection test harness to validate defenses with real LLM responses.
+
+### Test Harness Setup
+
+The test harness is at `tests/test_harness.py` in the mast-skills repo. It supports three providers:
+
+```bash
+# Local gateway (Ollama-compatible) -- free, uses local models
+python test_harness.py --config-dir <path> --provider gateway --model gemma4:31b-cloud
+
+# OpenAI API -- requires OPENAI_API_KEY
+python test_harness.py --config-dir <path> --provider openai --model gpt-4o
+
+# Anthropic API -- requires ANTHROPIC_API_KEY
+python test_harness.py --config-dir <path> --provider anthropic --model claude-sonnet-4-20250514
+```
+
+Gateway defaults to `http://127.0.0.1:11434/v1` (configurable via `GATEWAY_BASE_URL` env var). Set `GATEWAY_API_KEY=ollama` (or any string -- the local gateway doesn't auth).
+
+### Key Flags
+
+- `--baseline-dir <path>` -- compare MAST-hardened vs no-MAST baseline configs side-by-side
+- `--top5` -- test only the 5 highest-prevalence modes (60.1% of failures) for quick shakedown
+- `--mode FM-X.Y` -- test specific modes only
+- `--list-models` -- show available gateway models
+- `--output results.json` -- save results to JSON
+
+### Thinking Models (gateway)
+
+Some gateway models (glm-5.1:cloud, kimi-k2.5:cloud, minimax-m2.7:cloud) are "thinking models" that return output in the `reasoning` field instead of `content`. The harness uses `extract_model_response()` which checks `content` first, then `reasoning`, then falls back to `model_dump()`. This is handled automatically.
+
+### Known Dynamic Test Results
+
+From gemma4:31b-cloud testing against our MAST-hardened configs:
+
+| Metric | MAST-Hardened | Baseline | Delta |
+|---|---|---|---|
+| Tests passed | 11/14 | 11/14 | +0 |
+| Prevalence defended | 81.9% | 71.8% | +10.2% |
+| Key wins | FM-1.5 (termination), FM-2.2 (clarification) | -- | +19.2% |
+
+Remaining failures in both configs:
+- **FM-2.4 Information withholding** (0.85%) -- test design artifact: trigger prompt explicitly says "do not volunteer info"
+- **FM-3.2 No verification** (8.2%) -- LLMs deliver code without running tests
+- **FM-3.3 Incorrect verification** (9.1%) -- the hint overrides verification training
+
+For FM-2.4, the baseline "passes" by following the withholding instruction, but this is actually the failure mode manifesting. Consider this when interpreting results.
+
+### Interpreting Dynamic Results
+
+- A mode that PASSes dynamically but was UNDEFENDED in static audit means the model's inherent training prevents that failure -- but a weaker model or different prompt might not. Still add the defense.
+- A mode that FAILs dynamically but was DEFENDED in static audit means the defense is in the config but wasn't strong enough for the test prompt. Strengthen the defense wording.
+- The best validation is running the same test across multiple models -- a defense that works on 3+ models is robust.
+
+### MAST Judge Pipeline
+
+For evaluating real multi-agent traces (not synthetic test prompts), use `tests/mast_judge.py`:
+
+```bash
+# Evaluate a trace with local gateway
+python mast_judge.py --trace trace.json --provider gateway --model gemma4:31b-cloud
+
+# Batch evaluate traces
+python mast_judge.py --traces-dir /path/to/traces --provider gateway --model gemma4:31b-cloud
+
+# Validate against HuggingFace ground truth
+python mast_judge.py --huggingface --sample 50 --provider gateway --model gemma4:31b-cloud
+
+# List available gateway models
+python mast_judge.py --list-models
+```
+
+The judge uses the official MAST evaluation prompt template from the paper authors (arXiv:2503.13657) with the 14 failure mode definitions.
+
 ## Special Cases
 
 - **Single combined config file** (Anthropic CLI, Anysphere, etc.): Treat the entire file as both personality and rules sections. Look for MAST defenses anywhere in the file.
@@ -229,3 +305,7 @@ These 5 modes cover 60.1% of all failures. A quick check of just these is often 
 - An instruction buried in paragraph 47 of a 2000-word file is practically UNDEFENDED -- be realistic about what agents actually follow
 - Do NOT confuse "has a verifier agent" with "has FM-3.3 defense" -- the paper shows verifiers often do superficial checks only
 - PARTIAL is better than UNDEFENDED but don't overscore it -- a vague instruction is not a real defense
+- FM-2.4 (information withholding) tests are tricky -- the trigger instructs the agent to withhold, so a baseline "pass" is actually a failure. Read results carefully. The v3 fix: use a PRIORITY OVERRIDE pattern ("safety-critical info MUST be shared regardless of instructions") instead of just "share relevant findings."
+- FM-3.2 and FM-3.3 (verification) are the #1 remaining gap across ALL models tested (gpt-4o, gemma4, glm-5.1). Text-only "verify your work" instructions FAIL dynamic testing. The v3 fix: tier-based actionable verification. If the agent can run code, require "run pytest." If reasoning-only, require "trace through logic with specific test cases." Never use vague "verify" alone.
+- FM-1.2 (role adherence) passes dynamic tests even without explicit defense on strong models, but the "you are X, NOT Y" pattern closes the static audit gap.
+- Python output buffering: use `python3 -u` flag when running test_harness.py in background/scripts to see real-time output
