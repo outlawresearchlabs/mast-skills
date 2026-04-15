@@ -3,9 +3,14 @@
 # Usage: ./run_mast.sh [--subset N] [--start IDX] [--model MODEL_NAME]
 #
 # Environment variables:
-#   OPENAI_API_KEY   - Required. OpenAI API key
-#   OPENAI_BASE_URL  - Optional. Custom API base URL
-#   CHATDEV_MODEL    - Optional. Model name (default: gpt-4o)
+#   OPENAI_API_KEY    - Required for OpenAI/Anthropic. Set to "ollama" for local gateway.
+#   OPENAI_BASE_URL   - Custom API base URL (default for gateway: http://127.0.0.1:11434/v1)
+#   CHATDEV_MODEL     - Model name (default: gpt-4o, or gemma4:31b-cloud for gateway)
+#
+# Gateway usage:
+#   export OPENAI_API_KEY=ollama
+#   export OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+#   ./run_mast.sh --model gemma4:31b-cloud
 
 set -euo pipefail
 
@@ -30,9 +35,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validate env
+# Validate env - allow "ollama" as a valid key for local gateway
 if [ -z "${OPENAI_API_KEY:-}" ]; then
     echo "ERROR: OPENAI_API_KEY environment variable is required"
+    echo "For local gateway: export OPENAI_API_KEY=ollama"
     exit 1
 fi
 

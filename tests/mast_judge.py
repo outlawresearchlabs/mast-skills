@@ -5,23 +5,34 @@ This is a cleaned-up version of the official MAST evaluation pipeline from
 https://github.com/multi-agent-systems-failure-taxonomy/MAST
 
 The paper authors used o1 as the judge model. This version also supports
-GPT-4o and Claude for cost efficiency, plus the HuggingFace annotated dataset.
+GPT-4o, Claude, and local gateway models for cost efficiency, plus the
+HuggingFace annotated dataset.
 
 Key differences from the original notebook:
 - Uses the official definitions.txt and examples.txt from the paper authors
-- Supports both OpenAI and Anthropic models as judges
+- Supports OpenAI, Anthropic, and local gateway APIs as judges
 - Integrates with HuggingFace dataset (mcemri/MAD) for ground truth comparison
 - Adds batch processing and result caching
+- Handles thinking models that put output in reasoning field
 
 Usage:
-  # Evaluate a single trace
+  # Local gateway (Ollama-compatible)
+  python mast_judge.py --trace path/to/trace.json --provider gateway --model gemma4:31b-cloud
+  python mast_judge.py --traces-dir /path/to/traces --provider gateway --model glm-5.1:cloud
+
+  # OpenAI API
   python mast_judge.py --trace path/to/trace.json --provider openai --model gpt-4o
 
-  # Evaluate against HuggingFace ground truth
-  python mast_judge.py --huggingface --sample 50 --provider openai --model gpt-4o
+  # Anthropic API
+  python mast_judge.py --trace path/to/trace.json --provider anthropic --model claude-sonnet-4-20250514
 
-  # Batch evaluate all traces from a MAS framework
-  python mast_judge.py --traces-dir /path/to/traces --provider anthropic --model claude-sonnet-4-20250514
+  # Validate against HuggingFace ground truth
+  python mast_judge.py --huggingface --sample 50 --provider gateway --model gemma4:31b-cloud
+
+Environment variables:
+  OPENAI_API_KEY       - Required for --provider openai
+  ANTHROPIC_API_KEY    - Required for --provider anthropic
+  GATEWAY_BASE_URL     - Override default gateway URL (default: http://127.0.0.1:11434/v1)
 """
 
 import json
@@ -32,6 +43,98 @@ import argparse
 import time
 from pathlib import Path
 from datetime import datetime
+
+# ============================================================
+# GATEWAY CLIENT - Local Ollama-compatible API
+# ============================================================
+
+GATEWAY_BASE_URL = os.environ.get("GATEWAY_BASE_URL", "http://127.0.0.1:11434/v1")
+GATEWAY_API_KEY = os.environ.get("GATEWAY_API_KEY", "ollama")
+
+# Models known to put output in reasoning/thinking field instead of content
+THINKING_MODELS = {"glm-5.1:cloud", "kimi-k2.5:cloud", "minimax-m2.7:cloud"}
+
+
+def extract_model_response(response_json):
+    """Extract the actual text from a chat completion response.
+    
+    Some gateway models (thinking models) return empty msg.content and
+    put output in msg.reasoning instead. This helper checks content first,
+    then reasoning, then falls back to model_dump.
+    """
+    choice = response_json.get("choices", [{}])[0]
+    msg = choice.get("message", {})
+    
+    # Standard: content field has the response
+    content = msg.get("content")
+    if content and content.strip():
+        return content.strip()
+    
+    # Thinking models: output is in reasoning field
+    reasoning = msg.get("reasoning")
+    if reasoning and reasoning.strip():
+        return reasoning.strip()
+    
+    # Fallback: try model_dump if it's an object
+    if hasattr(msg, "model_dump"):
+        dumped = msg.model_dump()
+        for key in ["content", "reasoning", "text"]:
+            val = dumped.get(key)
+            if val and str(val).strip():
+                return str(val).strip()
+    
+    return ""
+
+
+def call_gateway(system_prompt, user_prompt, model, temperature=1.0, max_tokens=4096):
+    """Call the local Ollama-compatible gateway API."""
+    import urllib.request
+    import urllib.error
+    
+    url = f"{GATEWAY_BASE_URL}/chat/completions"
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {GATEWAY_API_KEY}",
+    }
+    
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            response = json.loads(resp.read().decode("utf-8"))
+        return extract_model_response(response)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Gateway HTTP {e.code}: {body[:500]}")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Gateway connection error: {e.reason}. Is the gateway running at {GATEWAY_BASE_URL}?")
+
+
+def list_gateway_models():
+    """List available models on the gateway."""
+    import urllib.request
+    import urllib.error
+    
+    url = f"{GATEWAY_BASE_URL}/models"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return [m["id"] for m in data.get("data", [])]
+    except Exception as e:
+        print(f"Warning: Could not list gateway models: {e}")
+        return []
+
 
 # Attempt imports
 try:
@@ -108,7 +211,7 @@ Also tell me whether the task is successfully completed or not, as a binary yes 
 At the very end, I provide you with the definitions of the failure modes and inefficiencies. After the definitions, I will provide you with examples of the failure modes and inefficiencies for you to understand them better.
 Tell me if you encounter any of them between the @@ symbols as I will say below, as a binary yes or no.
 Here are the things you should answer. Start after the @@ sign and end before the next @@ sign (do not include the @@ symbols in your answer):
-*** begin of things you should answer *** @@
+*** begin of things you should answer @@ 
 A. Freeform text summary of the problems with the inefficiencies or failure modes in the trace: <summary>
 B. Whether the task is successfully completed or not: <yes or no>
 C. Whether you encounter any of the failure modes or inefficiencies:
@@ -172,7 +275,7 @@ def parse_judge_response(response_text):
     }
     
     # Extract summary (A.)
-    summary_match = re.search(r'A\.\s*(.*?)(?=\nB\.)', content, re.DOTALL)
+    summary_match = re.search(r'A\.\s*(.*?)\nB\.', content, re.DOTALL)
     if summary_match:
         result["summary"] = summary_match.group(1).strip()
     
@@ -249,6 +352,29 @@ def evaluate_trace_anthropic(trace_text, definitions, examples, model="claude-so
     )
     
     return parse_judge_response(response.content[0].text)
+
+
+def evaluate_trace_gateway(trace_text, definitions, examples, model="gemma3:12b"):
+    """Evaluate a trace using the local Ollama-compatible gateway API."""
+    prompt = EVALUATION_PROMPT_TEMPLATE.format(
+        trace=trace_text,
+        definitions=definitions,
+        examples=examples
+    )
+    
+    # Truncate for gateway models (most have ~128k context)
+    if len(prompt) > 120000:
+        prompt = prompt[:120000]
+    
+    result_text = call_gateway(
+        system_prompt="You are an expert evaluator of multi-agent systems. Analyze traces for failure modes.",
+        user_prompt=prompt,
+        model=model,
+        temperature=1.0,
+        max_tokens=4096,
+    )
+    
+    return parse_judge_response(result_text)
 
 
 def load_huggingface_dataset(full=True):
@@ -328,19 +454,43 @@ def validate_our_test_harness():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="MAST Official LLM-as-Judge Pipeline")
+    parser = argparse.ArgumentParser(
+        description="MAST Official LLM-as-Judge Pipeline",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Evaluate a trace with local gateway
+  python mast_judge.py --trace trace.json --provider gateway --model gemma4:31b-cloud
+  
+  # Batch evaluate with gateway
+  python mast_judge.py --traces-dir /path/to/traces --provider gateway --model glm-5.1:cloud
+  
+  # List available gateway models
+  python mast_judge.py --list-models
+        """,
+    )
     parser.add_argument("--trace", type=str, help="Path to trace file to evaluate")
     parser.add_argument("--traces-dir", type=str, help="Directory of trace files to batch evaluate")
     parser.add_argument("--huggingface", action="store_true", help="Validate against HuggingFace dataset")
     parser.add_argument("--definitions", type=str, default=None, help="Path to definitions.txt (defaults to official)")
     parser.add_argument("--examples", type=str, default=None, help="Path to examples.txt (defaults to official)")
-    parser.add_argument("--provider", choices=["openai", "anthropic"], default="openai")
-    parser.add_argument("--model", type=str, default=None)
+    parser.add_argument("--provider", choices=["openai", "anthropic", "gateway"], default="gateway",
+                        help="API provider (default: gateway)")
+    parser.add_argument("--model", type=str, default=None, help="Model name")
     parser.add_argument("--sample", type=int, default=50, help="Number of HuggingFace traces to sample")
     parser.add_argument("--output", type=str, default=None, help="Output JSON file for results")
     parser.add_argument("--validate", action="store_true", help="Validate test harness against ground truth")
+    parser.add_argument("--list-models", action="store_true", help="List available gateway models and exit")
     
     args = parser.parse_args()
+    
+    # List models mode
+    if args.list_models:
+        print("Available gateway models:")
+        for m in list_gateway_models():
+            tag = " (thinking)" if m in THINKING_MODELS else ""
+            print(f"  {m}{tag}")
+        return
     
     # Load definitions and examples
     definitions = OFFICIAL_DEFINITIONS
@@ -356,16 +506,23 @@ def main():
         with open("taxonomy_definitions_examples/examples.txt") as f:
             examples = f.read()
     
-    # Select model
+    # Select model and evaluator
     if args.provider == "openai":
         model = args.model or "gpt-4o"
         evaluator = lambda trace: evaluate_trace_openai(trace, definitions, examples, model)
-    else:
+    elif args.provider == "anthropic":
         model = args.model or "claude-sonnet-4-20250514"
         evaluator = lambda trace: evaluate_trace_anthropic(trace, definitions, examples, model)
+    elif args.provider == "gateway":
+        model = args.model or "gemma3:12b"
+        evaluator = lambda trace: evaluate_trace_gateway(trace, definitions, examples, model)
+    else:
+        parser.error(f"Unknown provider: {args.provider}")
     
     print(f"MAST LLM-as-Judge Pipeline")
     print(f"Provider: {args.provider}, Model: {model}")
+    if args.provider == "gateway":
+        print(f"Gateway: {GATEWAY_BASE_URL}")
     
     results = []
     
@@ -435,6 +592,7 @@ def main():
                 "timestamp": datetime.now().isoformat(),
                 "model": model,
                 "provider": args.provider,
+                "gateway_url": GATEWAY_BASE_URL if args.provider == "gateway" else None,
                 "results": results,
             }, f, indent=2, default=str)
         print(f"\nResults saved to {args.output}")

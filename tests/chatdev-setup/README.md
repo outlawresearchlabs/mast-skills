@@ -57,9 +57,22 @@ This setup embeds defenses against 7 key failure modes into ChatDev's agent role
 cd /tmp/mast-chatdev-setup/ChatDev
 ./mast_hardened/setup.sh
 
-# 2. Run benchmarks (requires API key)
-export OPENAI_API_KEY=sk-...
+# 2a. Run benchmarks with LOCAL GATEWAY (free, no API key needed)
 source venv/bin/activate
+export OPENAI_API_KEY=ollama
+export OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+
+# Run on a subset for quick testing (5 problems)
+./mast_hardened/run_baseline.sh --subset 5 --model gemma4:31b-cloud
+./mast_hardened/run_mast.sh --subset 5 --model gemma4:31b-cloud
+
+# Full run with a different model
+./mast_hardened/run_baseline.sh --model glm-5.1:cloud
+./mast_hardened/run_mast.sh --model glm-5.1:cloud
+
+# 2b. Run benchmarks with OpenAI API
+source venv/bin/activate
+export OPENAI_API_KEY=sk-...
 
 # Run on a subset for quick testing
 ./mast_hardened/run_baseline.sh --subset 5

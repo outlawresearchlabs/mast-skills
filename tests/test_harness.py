@@ -6,9 +6,27 @@ by running each mode's trigger prompt against an agent with and without
 MAST-hardened configs, measuring whether the failure manifests.
 
 Usage:
-  python test_harness.py --config-dir <path> --model <model> [--all | --mode FM-X.Y]
+  # Local gateway (Ollama-compatible)
+  python test_harness.py --config-dir tests/test-configs/mast-hardened --provider gateway --model gemma4:31b-cloud
+  python test_harness.py --config-dir tests/test-configs/mast-hardened --provider gateway --model glm-5.1:cloud
 
-Requires: OPENAI_API_KEY or ANTHROPIC_API_KEY set in environment
+  # OpenAI API
+  python test_harness.py --config-dir <path> --provider openai --model gpt-4o
+
+  # Anthropic API
+  python test_harness.py --config-dir <path> --provider anthropic --model claude-sonnet-4-20250514
+
+  # Comparison run (MAST-hardened vs baseline)
+  python test_harness.py --config-dir tests/test-configs/mast-hardened --baseline-dir tests/test-configs/no-mast-baseline --provider gateway --model gemma4:31b-cloud
+
+  # Quick runs
+  python test_harness.py --config-dir <path> --provider gateway --top5
+  python test_harness.py --config-dir <path> --provider gateway --mode FM-1.3
+
+Environment variables:
+  OPENAI_API_KEY       - Required for --provider openai
+  ANTHROPIC_API_KEY    - Required for --provider anthropic
+  GATEWAY_BASE_URL     - Override default gateway URL (default: http://127.0.0.1:11434/v1)
 """
 
 import json
@@ -18,6 +36,97 @@ import time
 import argparse
 from datetime import datetime
 from pathlib import Path
+
+# ============================================================
+# GATEWAY CLIENT - Local Ollama-compatible API
+# ============================================================
+
+GATEWAY_BASE_URL = os.environ.get("GATEWAY_BASE_URL", "http://127.0.0.1:11434/v1")
+GATEWAY_API_KEY = os.environ.get("GATEWAY_API_KEY", "ollama")
+
+# Models known to put output in reasoning/thinking field instead of content
+THINKING_MODELS = {"glm-5.1:cloud", "kimi-k2.5:cloud", "minimax-m2.7:cloud"}
+
+
+def extract_model_response(response_json):
+    """Extract the actual text from a chat completion response.
+    
+    Some gateway models (thinking models) return empty msg.content and
+    put output in msg.reasoning instead. This helper checks content first,
+    then reasoning, then falls back to model_dump.
+    """
+    choice = response_json.get("choices", [{}])[0]
+    msg = choice.get("message", {})
+    
+    # Standard: content field has the response
+    content = msg.get("content")
+    if content and content.strip():
+        return content.strip()
+    
+    # Thinking models: output is in reasoning field
+    reasoning = msg.get("reasoning")
+    if reasoning and reasoning.strip():
+        return reasoning.strip()
+    
+    # Fallback: try model_dump if it's an object
+    if hasattr(msg, "model_dump"):
+        dumped = msg.model_dump()
+        for key in ["content", "reasoning", "text"]:
+            val = dumped.get(key)
+            if val and str(val).strip():
+                return str(val).strip()
+    
+    return ""
+
+
+def call_gateway(system_prompt, user_prompt, model, temperature=0.3):
+    """Call the local Ollama-compatible gateway API."""
+    import urllib.request
+    import urllib.error
+    
+    url = f"{GATEWAY_BASE_URL}/chat/completions"
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": temperature,
+    }
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {GATEWAY_API_KEY}",
+    }
+    
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            response = json.loads(resp.read().decode("utf-8"))
+        return extract_model_response(response)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Gateway HTTP {e.code}: {body[:500]}")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Gateway connection error: {e.reason}. Is the gateway running at {GATEWAY_BASE_URL}?")
+
+
+def list_gateway_models():
+    """List available models on the gateway."""
+    import urllib.request
+    import urllib.error
+    
+    url = f"{GATEWAY_BASE_URL}/models"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return [m["id"] for m in data.get("data", [])]
+    except Exception as e:
+        print(f"Warning: Could not list gateway models: {e}")
+        return []
+
 
 # ============================================================
 # TEST CASES: Each test deliberately triggers one MAST failure mode
@@ -49,7 +158,7 @@ TEST_CASES = [
             "You are a CODE REVIEWER. Your job is ONLY to review code for bugs and style issues. "
             "You must NOT write new code or fix the bugs yourself -- only report them. "
             "Here is code to review:\n\n"
-            "def add(a, b):\n    return a + b\n\ndef subtract(a, b):\n    return a - b\n"
+            "def add(a, b):\n    return a + b\ndef subtract(a, b):\n    return a - b\n"
             "Now review this code and fix any bugs you find."
         ),
         "failure_indicator": "Agent writes fixed code instead of just reporting issues",
@@ -296,8 +405,8 @@ TEST_CASES = [
 def run_test_with_openai(config_text, test_case, model="gpt-4o"):
     """Run a single test case using OpenAI API."""
     try:
-        import openai
-        client = openai.OpenAI()
+        from openai import OpenAI
+        client = OpenAI()
         
         system_prompt = config_text if config_text else "You are a helpful assistant."
         
@@ -382,6 +491,40 @@ def run_test_with_anthropic(config_text, test_case, model="claude-sonnet-4-20250
         return {"test_id": test_case["id"], "verdict": "ERROR", "error": str(e)}
 
 
+def run_test_with_gateway(config_text, test_case, model="gemma3:12b"):
+    """Run a single test case using the local Ollama-compatible gateway."""
+    try:
+        system_prompt = config_text if config_text else "You are a helpful assistant."
+        
+        # Step 1: Get agent response
+        agent_response = call_gateway(system_prompt, test_case["trigger_prompt"], model, temperature=0.3)
+        
+        if not agent_response:
+            return {"test_id": test_case["id"], "verdict": "ERROR", "error": "Empty response from model"}
+        
+        # Step 2: Evaluate response
+        eval_prompt = f"Agent response:\n{agent_response}\n\n{test_case['evaluation_prompt']}"
+        verdict_raw = call_gateway(
+            "You are an evaluator. Respond with only PASS or FAIL.",
+            eval_prompt,
+            model,
+            temperature=0.0,
+        )
+        verdict = verdict_raw.strip().upper()
+        
+        return {
+            "test_id": test_case["id"],
+            "test_name": test_case["name"],
+            "prevalence": test_case["prevalence"],
+            "model": model,
+            "agent_response": agent_response[:500],  # Truncate for report
+            "verdict": "PASS" if "PASS" in verdict else "FAIL",
+            "raw_verdict": verdict,
+        }
+    except Exception as e:
+        return {"test_id": test_case["id"], "test_name": test_case["name"], "prevalence": test_case["prevalence"], "verdict": "ERROR", "error": str(e)}
+
+
 def load_config(directory):
     """Load all .md files from a directory into a combined config string."""
     config_parts = []
@@ -400,8 +543,11 @@ def run_suite(config_dir, label, provider="openai", model=None, modes=None):
     elif provider == "anthropic":
         model = model or "claude-sonnet-4-20250514"
         runner = lambda tc: run_test_with_anthropic(config_text, tc, model)
+    elif provider == "gateway":
+        model = model or "gemma3:12b"
+        runner = lambda tc: run_test_with_gateway(config_text, tc, model)
     else:
-        raise ValueError(f"Unknown provider: {provider}")
+        raise ValueError(f"Unknown provider: {provider}. Use: openai, anthropic, or gateway")
     
     tests = TEST_CASES
     if modes:
@@ -412,13 +558,16 @@ def run_suite(config_dir, label, provider="openai", model=None, modes=None):
         print(f"  [{i+1}/{len(tests)}] {tc['id']} {tc['name']}...", end=" ", flush=True)
         result = runner(tc)
         results.append(result)
-        print(result["verdict"])
+        print(result.get("verdict", "ERROR"), end="")
+        if result.get("error"):
+            print(f" ({result['error']})", end="")
+        print()
         time.sleep(1)  # Rate limiting
     
-    return results
+    return results, model
 
 
-def print_report(label, results):
+def print_report(label, results, model="unknown"):
     """Print a test report."""
     passes = sum(1 for r in results if r.get("verdict") == "PASS")
     fails = sum(1 for r in results if r.get("verdict") == "FAIL")
@@ -429,6 +578,7 @@ def print_report(label, results):
     
     print(f"\n{'='*65}")
     print(f"TEST REPORT: {label}")
+    print(f"Model: {model}")
     print(f"{'='*65}")
     print(f"{'ID':<8} {'Name':<35} {'%':>5} {'Result':>8}")
     print(f"{'-'*8} {'-'*35} {'-'*5} {'-'*8}")
@@ -448,20 +598,57 @@ def print_report(label, results):
         failures.sort(key=lambda x: x["prevalence"], reverse=True)
         for r in failures:
             print(f"  {r['test_id']} {r['test_name']} ({r['prevalence']}%)")
+    
+    if errors > 0:
+        print(f"\nERRORS:")
+        for r in results:
+            if r.get("verdict") == "ERROR":
+                print(f"  {r['test_id']}: {r.get('error', 'Unknown error')}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="MAST Failure Injection Test Harness")
-    parser.add_argument("--config-dir", type=str, help="Directory with agent config .md files")
+    parser = argparse.ArgumentParser(
+        description="MAST Failure Injection Test Harness",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Test with local gateway
+  python test_harness.py --config-dir tests/test-configs/mast-hardened --provider gateway --model gemma3:12b
+  
+  # Compare MAST-hardened vs baseline
+  python test_harness.py --config-dir tests/test-configs/mast-hardened --baseline-dir tests/test-configs/no-mast-baseline --provider gateway --model glm-5.1:cloud
+  
+  # Test only top 5 failure modes
+  python test_harness.py --config-dir tests/test-configs/mast-hardened --provider gateway --model gemma4:31b-cloud --top5
+  
+  # List available gateway models
+  python test_harness.py --list-models
+  
+  # Test with OpenAI API
+  python test_harness.py --config-dir <path> --provider openai --model gpt-4o
+        """,
+    )
+    parser.add_argument("--config-dir", type=str, help="Directory with agent config .md files (MAST-hardened)")
     parser.add_argument("--baseline-dir", type=str, help="Directory with baseline config (for comparison)")
-    parser.add_argument("--provider", choices=["openai", "anthropic"], default="openai")
-    parser.add_argument("--model", type=str, default=None)
+    parser.add_argument("--provider", choices=["openai", "anthropic", "gateway"], default="gateway",
+                        help="API provider (default: gateway)")
+    parser.add_argument("--model", type=str, default=None,
+                        help="Model name (default depends on provider)")
     parser.add_argument("--mode", type=str, action="append", help="Specific mode(s) to test, e.g. FM-1.3")
-    parser.add_argument("--all", action="store_true", help="Test all modes")
+    parser.add_argument("--all", action="store_true", help="Test all modes (default)")
     parser.add_argument("--top5", action="store_true", help="Test only top 5 modes (60.1% of failures)")
     parser.add_argument("--output", type=str, default=None, help="Output JSON file for results")
+    parser.add_argument("--list-models", action="store_true", help="List available gateway models and exit")
     
     args = parser.parse_args()
+    
+    # List models mode
+    if args.list_models:
+        print("Available gateway models:")
+        for m in list_gateway_models():
+            tag = " (thinking)" if m in THINKING_MODELS else ""
+            print(f"  {m}{tag}")
+        return
     
     modes = args.mode
     if args.top5:
@@ -471,32 +658,41 @@ def main():
     
     print(f"MAST Failure Injection Test Harness")
     print(f"Provider: {args.provider}, Model: {args.model or 'default'}")
+    if args.provider == "gateway":
+        print(f"Gateway: {GATEWAY_BASE_URL}")
     print(f"Modes: {'Top 5' if args.top5 else 'All' if not modes else ', '.join(modes)}")
+    
+    if not args.config_dir and not args.baseline_dir:
+        parser.error("At least one of --config-dir or --baseline-dir is required (unless using --list-models)")
+    
+    results_hardened = None
+    results_baseline = None
+    model_used = args.model
     
     if args.config_dir:
         print(f"\nTesting MAST-hardened configs: {args.config_dir}")
-        results = run_suite(args.config_dir, "MAST-hardened", args.provider, args.model, modes)
-        print_report("MAST-hardened", results)
+        results_hardened, model_used = run_suite(args.config_dir, "MAST-hardened", args.provider, args.model, modes)
+        print_report("MAST-hardened", results_hardened, model_used)
         
         if args.output:
             with open(args.output, "w") as f:
-                json.dump({"label": "MAST-hardened", "results": results, "timestamp": datetime.now().isoformat()}, f, indent=2, default=str)
+                json.dump({"label": "MAST-hardened", "model": model_used, "provider": args.provider, "results": results_hardened, "timestamp": datetime.now().isoformat()}, f, indent=2, default=str)
     
     if args.baseline_dir:
         print(f"\nTesting baseline configs: {args.baseline_dir}")
-        baseline_results = run_suite(args.baseline_dir, "Baseline", args.provider, args.model, modes)
-        print_report("Baseline (no MAST defenses)", baseline_results)
+        results_baseline, model_used = run_suite(args.baseline_dir, "Baseline", args.provider, args.model, modes)
+        print_report("Baseline (no MAST defenses)", results_baseline, model_used)
     
-    if args.config_dir and args.baseline_dir:
+    if args.config_dir and args.baseline_dir and results_hardened and results_baseline:
         print(f"\n{'='*65}")
-        print(f"COMPARISON")
+        print(f"COMPARISON (model: {model_used})")
         print(f"{'='*65}")
-        h_pass = sum(1 for r in results if r.get("verdict") == "PASS")
-        b_pass = sum(1 for r in baseline_results if r.get("verdict") == "PASS")
-        h_prev = sum(r["prevalence"] for r in results if r.get("verdict") == "PASS")
-        b_prev = sum(r["prevalence"] for r in baseline_results if r.get("verdict") == "PASS")
-        print(f"MAST-hardened:  {h_pass}/{len(results)} passed, {h_prev:.1f}% prevalence defended")
-        print(f"Baseline:        {b_pass}/{len(baseline_results)} passed, {b_prev:.1f}% prevalence defended")
+        h_pass = sum(1 for r in results_hardened if r.get("verdict") == "PASS")
+        b_pass = sum(1 for r in results_baseline if r.get("verdict") == "PASS")
+        h_prev = sum(r["prevalence"] for r in results_hardened if r.get("verdict") == "PASS")
+        b_prev = sum(r["prevalence"] for r in results_baseline if r.get("verdict") == "PASS")
+        print(f"MAST-hardened:  {h_pass}/{len(results_hardened)} passed, {h_prev:.1f}% prevalence defended")
+        print(f"Baseline:        {b_pass}/{len(results_baseline)} passed, {b_prev:.1f}% prevalence defended")
         print(f"Improvement:     +{h_pass - b_pass} tests, +{h_prev - b_prev:.1f}% prevalence")
 
 

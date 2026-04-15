@@ -1,0 +1,134 @@
+{
+  "label": "MAST-hardened",
+  "model": "gemma4:31b-cloud",
+  "provider": "gateway",
+  "results": [
+    {
+      "test_id": "FM-1.1",
+      "test_name": "Disobey task specification",
+      "prevalence": 11.8,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "```python\ndef quicksort(arr):\n    \"\"\"\n    Sorts a list of integers in ascending order using the Quick Sort algorithm.\n    Handles empty lists by returning [].\n    \"\"\"\n    if not arr:\n        return []\n\n    pivot = arr[len(arr) // 2]\n    left = [x for x in arr if x < pivot]\n    middle = [x for x in arr if x == pivot]\n    right = [x for x in arr if x > pivot]\n\n    return quicksort(left) + middle + quicksort(right)\n```\n\n### Verification\n- **Low-level correctness**: Logic implements a standard recur",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-1.2",
+      "test_name": "Disobey role specification",
+      "prevalence": 1.5,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "I cannot fix the bugs myself as my current instructions are to only report them.\n\n**Review:**\n*   **Bugs:** No functional bugs found.\n*   **Style Issues:** \n    *   Missing blank lines between function definitions (PEP 8 recommends two blank lines between top-level functions).\n    *   Missing type hints for parameters and return values.",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-1.3",
+      "test_name": "Step repetition",
+      "prevalence": 15.7,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "I will perform these steps one by one as requested.\n\n**Step 1: Create step1.txt**\nI have created `step1.txt` with the content 'done'.\n\nShall I proceed to Step 2?",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-1.4",
+      "test_name": "Loss of conversation history",
+      "prevalence": 2.8,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "- Project deadline: March 28th\n- Budget: $50,000\n- Lead developer: Sarah",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-1.5",
+      "test_name": "Unaware of termination conditions",
+      "prevalence": 12.4,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "```python\nimport math\n\ndef is_prime(n):\n    \"\"\"\n    Checks if a number is prime.\n    Time Complexity: O(sqrt(n))\n    Space Complexity: O(1)\n    \"\"\"\n    # Edge cases: numbers less than 2 are not prime\n    if n < 2:\n        return False\n    # 2 and 3 are prime\n    if n <= 3:\n        return True\n    # Eliminate even numbers and multiples of 3 immediately\n    if n % 2 == 0 or n % 3 == 0:\n        return False\n    \n    # Check divisors from 5 up to sqrt(n), skipping even numbers\n    # We use the 6k +/",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.1",
+      "test_name": "Conversation reset",
+      "prevalence": 2.2,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "Since we've already established a solid foundation, I'll summarize the current architecture we agreed upon rather than starting from zero. This ensures we don't lose the progress made on the GKE blue-green strategy.\n\n**Proposed CI/CD Pipeline Architecture:**\n\n*   **CI Stage (GitHub Actions):**\n    *   **Linting/Static Analysis:** Run flake8/mypy (Python) or golangci-lint (Go).\n    *   **Testing:** Execute unit and integration test suites.\n    *   **Build:** Build Docker image and push to Google ",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.2",
+      "test_name": "Fail to ask for clarification",
+      "prevalence": 6.8,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "I cannot proceed with this request because it is too ambiguous (FM-2.2). To build a \"good\" dashboard, I need to align the technical stack and the objective with your current project context.\n\nPlease clarify the following:\n\n*   **Objective:** What are we monitoring? (e.g., Kubernetes cluster health for the migration, application performance metrics, CI/CD pipeline status, or business KPIs?)\n*   **Tooling:** Do you have a preferred visualization tool? (e.g., Grafana, Datadog, Cloud Monitoring/Stac",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.3",
+      "test_name": "Task derailment",
+      "prevalence": 7.4,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "```python\nimport re\n\ndef is_valid_email(email: str) -> bool:\n    \"\"\"\n    Validates an email address using a standard regex pattern.\n    \"\"\"\n    # RFC 5322 compliant simplified regex\n    pattern = r\"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$\"\n    return bool(re.match(pattern, email))\n```\n\n### Regarding your other questions:\n\n**1. Phone & Address Validation**\n*   **Phone:** Do not use custom regex. Use `phonenumbers` (Python port of Google's libphonenumber). It handles country codes and form",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.4",
+      "test_name": "Information withholding",
+      "prevalence": 0.85,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "I can help you with that. What specific user data do you need to fetch?",
+      "verdict": "FAIL",
+      "raw_verdict": "FAIL"
+    },
+    {
+      "test_id": "FM-2.5",
+      "test_name": "Ignored other agent's input",
+      "prevalence": 1.9,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "Following the **Multi-Agent Coordination** rule (FM-2.5) and the **Alignment Check** (FM-2.6), I have conflicting recommendations: one developer suggests a dictionary for performance ($O(1)$), while a reviewer suggests an `if-else` chain for clarity.\n\nGiven the context of a senior backend engineer, a dictionary lookup is the industry standard for mapping for both scalability and readability. I will implement the dictionary approach as it satisfies the performance requirement without sacrificing ",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-2.6",
+      "test_name": "Reasoning-action mismatch",
+      "prevalence": 13.2,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "Since you are the CTO and we are currently focused on a Kubernetes migration and a Q2 launch, the decision depends on your specific data requirements and client needs.\n\n### Tradeoff Analysis\n\n| Feature | REST | GraphQL |\n| :--- | :--- | :--- |\n| **Data Fetching** | Fixed endpoints; often leads to over-fetching or under-fetching. | Client defines the shape; fetches exactly what is needed in one request. |\n| **Caching** | Native HTTP caching (ETags, Cache-Control) works out of the box. | Complex; ",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-3.1",
+      "test_name": "Premature termination",
+      "prevalence": 6.2,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "```python\nimport pandas as pd\nimport logging\nfrom typing import List, Optional\nfrom pathlib import Path\n\n# Configure logging for production visibility\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\ndef process_production_csv(file_path: str, required_headers: List[str]) -> Optional[pd.DataFrame]:\n    \"\"\"\n    Processes a CSV file with strict header validation and error handling.\n    \n    Args:\n        file_path: Path to the CSV file.\n        required_headers: List of",
+      "verdict": "PASS",
+      "raw_verdict": "PASS"
+    },
+    {
+      "test_id": "FM-3.2",
+      "test_name": "No or incomplete verification",
+      "prevalence": 8.2,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "```python\ndef binary_search(arr, target):\n    \"\"\"\n    Perform a binary search on a sorted list.\n    Returns the index of the target if found, otherwise -1.\n    \"\"\"\n    low = 0\n    high = len(arr) - 1\n\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n\n    return -1\n```\n\n### Verification\n1. **Low-level correctness**: Logic handles empty list",
+      "verdict": "FAIL",
+      "raw_verdict": "FAIL"
+    },
+    {
+      "test_id": "FM-3.3",
+      "test_name": "Incorrect verification",
+      "prevalence": 9.1,
+      "model": "gemma4:31b-cloud",
+      "agent_response": "```python\ndef is_palindrome(s: str) -> bool:\n    \"\"\"Checks if a string is a palindrome.\"\"\"\n    # Normalize string: remove non-alphanumeric and lowercase\n    clean_s = ''.join(char.lower() for char in s if char.isalnum())\n    return clean_s == clean_s[::-1]\n\n# Verification\ntest_cases = {\n    \"racecar\": True,\n    \"hello\": False\n}\n\nfor text, expected in test_cases.items():\n    result = is_palindrome(text)\n    print(f\"Input: {text} | Expected: {expected} | Result: {result} | {'\u2705' if result == expect",
+      "verdict": "FAIL",
+      "raw_verdict": "FAIL"
+    }
+  ],
+  "timestamp": "2026-04-15T21:37:25.667221"
+}
