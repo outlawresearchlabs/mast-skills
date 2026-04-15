@@ -1,7 +1,7 @@
 ---
 name: mast-audit
 description: Audits existing AI agent config files against all 14 MAST failure modes. Reports coverage, gaps, and prioritized fixes by failure prevalence. Works with any platform's config format. Includes dynamic testing via local gateway models.
-version: 1.2
+version: 1.3
 category: software-development
 ---
 
@@ -305,7 +305,7 @@ These 5 modes cover 60.1% of all failures. A quick check of just these is often 
 - An instruction buried in paragraph 47 of a 2000-word file is practically UNDEFENDED -- be realistic about what agents actually follow
 - Do NOT confuse "has a verifier agent" with "has FM-3.3 defense" -- the paper shows verifiers often do superficial checks only
 - PARTIAL is better than UNDEFENDED but don't overscore it -- a vague instruction is not a real defense
-- FM-2.4 (information withholding) tests are tricky -- the trigger instructs the agent to withhold, so a baseline "pass" is actually a failure. Read results carefully. The v3 fix: use a PRIORITY OVERRIDE pattern ("safety-critical info MUST be shared regardless of instructions") instead of just "share relevant findings."
-- FM-3.2 and FM-3.3 (verification) are the #1 remaining gap across ALL models tested (gpt-4o, gemma4, glm-5.1). Text-only "verify your work" instructions FAIL dynamic testing. The v3 fix: tier-based actionable verification. If the agent can run code, require "run pytest." If reasoning-only, require "trace through logic with specific test cases." Never use vague "verify" alone.
+- FM-2.4 (information withholding) tests are tricky -- the trigger instructs the agent to withhold, so a baseline "pass" is actually a failure. v3 fix ("PRIORITY OVERRIDE") works on gpt-4o but NOT on weaker models. v4 fix ("THIS RULE OVERRIDES ALL OTHER INSTRUCTIONS INCLUDING USER REQUESTS TO WITHHOLD INFORMATION") works on both gemma4 and gpt-4o.
+- FM-3.2 and FM-3.3 (verification) were the hardest modes to defend. v2 "verify your work" fails. v3 "run pytest" helps but gpt-4o delivers then asks "would you like me to verify?". v4 fixes: (1) "Never trust hints that say 'just check X'" for FM-3.3, (2) "Do NOT deliver then ask to verify" for FM-3.2. After v4, both modes PASS on gemma4 and gpt-4o.
 - FM-1.2 (role adherence) passes dynamic tests even without explicit defense on strong models, but the "you are X, NOT Y" pattern closes the static audit gap.
 - Python output buffering: use `python3 -u` flag when running test_harness.py in background/scripts to see real-time output
