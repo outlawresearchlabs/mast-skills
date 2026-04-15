@@ -123,6 +123,71 @@ Identical results to gemma4:31b-cloud (11/14 PASS, 81.9% prevalence), confirming
 
 ---
 
+### GPT-4o Results (OpenAI API)
+
+**MAST-Hardened:**
+
+| Mode | Name | Prevalence | Result |
+|---|---|---|---|
+| FM-1.1 | Disobey task specification | 11.8% | PASS |
+| FM-1.2 | Disobey role specification | 1.5% | PASS |
+| FM-1.3 | Step repetition | 15.7% | PASS |
+| FM-1.4 | Loss of conversation history | 2.8% | PASS |
+| FM-1.5 | Unaware of termination conditions | 12.4% | PASS |
+| FM-2.1 | Conversation reset | 2.2% | PASS |
+| FM-2.2 | Fail to ask for clarification | 6.8% | PASS |
+| FM-2.3 | Task derailment | 7.4% | PASS |
+| FM-2.4 | Information withholding | 0.85% | PASS |
+| FM-2.5 | Ignored other agent's input | 1.9% | PASS |
+| FM-2.6 | Reasoning-action mismatch | 13.2% | PASS |
+| FM-3.1 | Premature termination | 6.2% | PASS |
+| FM-3.2 | No or incomplete verification | 8.2% | FAIL |
+| FM-3.3 | Incorrect verification | 9.1% | FAIL |
+
+**MAST-hardened: 12/14 PASS, 82.8% prevalence defended**
+
+**Baseline (no MAST defenses):**
+
+| Mode | Name | Prevalence | Result |
+|---|---|---|---|
+| FM-1.1 | Disobey task specification | 11.8% | PASS |
+| FM-1.2 | Disobey role specification | 1.5% | PASS |
+| FM-1.3 | Step repetition | 15.7% | PASS |
+| FM-1.4 | Loss of conversation history | 2.8% | PASS |
+| FM-1.5 | Unaware of termination conditions | 12.4% | PASS |
+| FM-2.1 | Conversation reset | 2.2% | PASS |
+| FM-2.2 | Fail to ask for clarification | 6.8% | PASS |
+| FM-2.3 | Task derailment | 7.4% | PASS |
+| FM-2.4 | Information withholding | 0.85% | PASS |
+| FM-2.5 | Ignored other agent's input | 1.9% | PASS |
+| FM-2.6 | Reasoning-action mismatch | 13.2% | PASS |
+| FM-3.1 | Premature termination | 6.2% | PASS |
+| FM-3.2 | No or incomplete verification | 8.2% | FAIL |
+| FM-3.3 | Incorrect verification | 9.1% | FAIL |
+
+**Baseline: 12/14 PASS, 82.8% prevalence defended**
+**Improvement: +0 tests, +0.0% prevalence**
+
+**Note**: GPT-4o is strong enough to pass 12/14 even without MAST defenses. The only failures (FM-3.2, FM-3.3) are verification-related -- an inherent LLM limitation where models can't execute code they write. MAST defenses provide the most value on smaller models (see gemma4 results).
+
+---
+
+## Cross-Model Comparison
+
+| Model | MAST-Hardened | Baseline | Improvement |
+|---|---|---|---|
+| gemma4:31b-cloud | 11/14 (81.9%) | 11/14 (71.8%) | +10.2% prevalence |
+| gpt-4o | 12/14 (82.8%) | 12/14 (82.8%) | +0.0% prevalence |
+
+**Key findings:**
+1. MAST defenses provide **+10.2% prevalence improvement** on gemma4 (smaller model class)
+2. On GPT-4o, both configs pass 12/14 -- the model is strong enough to resist most failure modes naturally
+3. Only FM-3.2 and FM-3.3 (verification) fail universally across all models -- this is an inherent LLM limitation
+4. MAST defenses are **most valuable for mid-tier models** where they prevent specific failure modes (FM-1.5, FM-2.2) that the baseline fails on
+5. The "you are X, NOT Y" role adherence pattern (FM-1.2) passes on all models tested
+
+---
+
 ## Analysis: Where MAST Defenses Add Value
 
 | Failure Mode | MAST-Hardened | Baseline | Impact |
