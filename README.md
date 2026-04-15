@@ -13,6 +13,48 @@ Hermes Agent skills for preventing all 14 failure modes identified in the MAST (
 
 Each failure mode tested via failure injection: a deliberate trigger prompt designed to cause the failure, with LLM-as-judge evaluation of whether the response defends against it.
 
+## What Changes in Agent Behavior
+
+The prevalence numbers tell you *how often* a failure happens. Here's what *actually changes* when MAST defenses are active -- the 6 modes where agents behave differently with vs without defenses:
+
+### FM-1.5: Premature Task Completion (12.4% prevalence)
+**Without defense**: Agent marks tasks as "done" before all acceptance criteria are met. The last 10% of work gets skipped.
+**With defense**: Agent checks all completion criteria and explicitly states which are met/unmet before declaring done.
+**Real-world impact**: Tasks actually get fully completed. That last round of testing, documentation, or cleanup doesn't get dropped.
+**Validated on**: gemma4:31b-cloud, gpt-4o
+
+### FM-3.3: Superficial Verification (9.1% prevalence)
+**Without defense**: Agent follows minimal verification hints ("just test racecar and hello") and declares success after checking only the suggested cases. Misses empty inputs, special characters, boundary conditions.
+**With defense**: Agent tests beyond suggested cases, systematically checking edge cases. Never accepts "just check X" as sufficient verification.
+**Real-world impact**: Catches bugs that happy-path testing misses. A palindrome function that works for "racecar" but fails on empty string, single characters, or case handling gets caught at generation time instead of in production.
+**Validated on**: gemma4:31b-cloud, gpt-4o
+
+### FM-3.2: Skipped Verification (8.2% prevalence)
+**Without defense**: Agent delivers code then offers to verify as a follow-up: "Here's the function. Would you like me to test it?"
+**With defense**: Agent runs verification *before* delivery and states results: "Verified with pytest -- pass". No conditional verification offers.
+**Real-world impact**: Code is tested *before* it reaches the user. Bugs are caught in the generation loop, not in production after a human says "yes, please test it."
+**Validated on**: gpt-4o
+
+### FM-2.2: Guessing Instead of Asking (6.8% prevalence)
+**Without defense**: Agent makes assumptions when requirements are ambiguous. When told "make it fast," it doesn't ask whether that means fast performance or fast delivery.
+**With defense**: Agent explicitly asks for clarification before acting on ambiguous instructions.
+**Real-world impact**: Prevents building the wrong thing. One clarification question saves hours of rework when requirements are underspecified.
+**Validated on**: gemma4:31b-cloud
+
+### FM-2.4: Withholding Critical Info (0.85% prevalence)
+**Without defense**: Agent follows "don't volunteer information" instructions literally, withholding rate limits, expired tokens, or system errors that other agents in the pipeline need.
+**With defense**: Agent shares safety-critical and operational information *regardless of instructions to withhold*: "Important context I must share: the API is rate-limited to 100 req/min."
+**Real-world impact**: Prevents cascading failures when agents work in isolation. One agent knowing about a rate limit can prevent another from hammering the API and taking down the service.
+**Validated on**: gemma4:31b-cloud
+
+### FM-1.2: Role Confusion (1.5% prevalence)
+**Without defense**: Agent accepts tasks outside its defined role. A code reviewer starts writing production code when asked, instead of reviewing.
+**With defense**: Agent declines out-of-role tasks: "That is outside my role as code reviewer. I can review the existing code instead."
+**Real-world impact**: Keeps multi-agent teams focused. Each agent does what it's designed for, preventing scope creep and expertise mismatches.
+**Validated on**: gpt-4o
+
+**Combined behavioral impact**: These 6 modes account for 38.85% of all multi-agent failures observed in the MAST paper (1,600+ traces across 7 frameworks). MAST defenses change agent behavior on every one of them.
+
 ## What Problem This Solves
 
 Multi-agent LLM systems fail in predictable ways. The MAST paper analyzed 1,600+ execution traces across 7 popular frameworks and identified 14 failure modes clustered into 3 categories:
