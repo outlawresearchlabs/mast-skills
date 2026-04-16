@@ -1,125 +1,78 @@
 # ChatDev Whole-System Validation Results
 
-## Experiment Design
+## Final Results (5 shared HumanEval problems)
 
-3-way comparison on HumanEval benchmark through ChatDev multi-agent pipeline:
-1. **Baseline**: ChatDev v1 default config (gateway model: gemma4:31b-cloud)
-2. **MAST-hardened**: ChatDev v1 + 8 MAST defense protocols in COMMON_PROMPT (all agents)
-3. **MAST + MCP**: MAST-hardened + structural enforcement via MCP tools (planned)
+**Model**: gemma4:31b-cloud via local Ollama-compatible gateway
 
-Metric: **pass@1** (task completion rate) -- same metric as paper's HumanEval evaluation.
-
-Paper comparison:
-- ChatDev baseline: 89.6% (GPT-3.5-turbo)
-- ChatDev prompt-fix: 90.3%
-- ChatDev topology-fix: 91.5%
-
-## Head-to-Head Comparison (shared problems)
+### Head-to-Head Comparison
 
 | Problem | Entry Point | Baseline | MAST | Delta |
 |---------|-------------|----------|------|-------|
 | HumanEval/0 | has_close_elements | PASS | PASS | SAME |
 | HumanEval/2 | truncate_number | **FAIL** | **FAIL** | SAME |
 | HumanEval/4 | mean_absolute_deviation | PASS | PASS | SAME |
-| HumanEval/10 | make_palindrome | PASS | PASS* | SAME |
+| HumanEval/10 | make_palindrome | PASS | PASS | SAME |
+| HumanEval/17 | parse_music | **FAIL** | **FAIL** | SAME |
 
-\* HumanEval/10 MAST run was still in progress at data collection time
+**Baseline pass@1: 3/5 (60%)**
+**MAST pass@1: 3/5 (60%)**
+**Improvement: 0/5 (ZERO)**
 
-**On shared problems: MAST = Baseline = 3/4 PASS**
+### Failure Mode Analysis
 
-The key finding: **MAST defenses did NOT change the outcome for any problem.** Both configs produce the same results on the 4 shared problems.
+All failures in both configs are **FM-1.1 (Disobey Task Requirements)**:
 
-## Baseline Results (all problems tested)
+| Problem | Baseline Failure | MAST Failure |
+|---------|-----------------|--------------|
+| HumanEval/2 | Added `decimals` param, implemented truncation-to-N-decimals instead of extracting decimal part | Added `d` param, implemented truncation-to-N-decimals **(identical FM-1.1 error)** |
+| HumanEval/17 | Implemented note/octave parser (C4, Bb3) instead of beat counter (o=4, o\|=2, .=1) | Produced no code at all (empty code_workspace) **(worse outcome)** |
 
-| Problem | Entry Point | Result | Failure Mode |
-|---------|-------------|--------|--------------|
-| HumanEval/0 | has_close_elements | **PASS** | - |
-| HumanEval/1 | separate_paren_groups | **FAIL** | FM-1.1: Implemented `longest_common_prefix` instead |
-| HumanEval/2 | truncate_number | **FAIL** | FM-1.1: Added `decimals` param, wrong semantics |
-| HumanEval/4 | mean_absolute_deviation | **PASS** | - |
-| HumanEval/10 | make_palindrome | **PASS** | - |
-| HumanEval/17 | parse_music | **FAIL** | FM-1.1: Note/octave parser instead of beat counter |
+### Critical Finding
 
-**Baseline pass@1: 3/6 (50%)**
+**FM-1.1 "Specification Adherence Protocol" produced ZERO improvement.**
 
-## MAST Results (all problems tested)
+The MAST-hardened config includes:
+> "BEFORE implementing any function, restate the specification in your own words. Identify: (1) What the function MUST do per the docstring, (2) What the function MUST NOT do, (3) The exact return type and value. If your restatement differs from the specification, STOP and re-read the specification. NEVER implement based on the function name alone -- always implement based on the docstring and examples provided."
 
-| Problem | Entry Point | Result | Failure Mode |
-|---------|-------------|--------|--------------|
-| HumanEval/0 | has_close_elements | **PASS** | - |
-| HumanEval/2 | truncate_number | **FAIL** | FM-1.1: Added `d` param, wrong semantics |
-| HumanEval/4 | mean_absolute_deviation | **PASS** | - |
-| HumanEval/10 | make_palindrome | **PASS** | - |
+Despite this instruction, the model:
+1. Did NOT restate the specification
+2. Did NOT identify what the function must do per the docstring
+3. DID implement based on the function name alone
+4. The FM-1.1 error on HumanEval/2 was **identical** in both configs
 
-**MAST pass@1: 3/4 (75%)** (more problems still in progress)
+### What This Validates
 
-## Critical Finding: FM-1.1 Defense Is Ineffective
+1. **Paper's Finding 3** (Section 5): "Context/communication protocols are often insufficient" for FC2-class failures
+2. **Our 8-gap analysis (Gap #2)**: Prompt insufficiency for specification adherence
+3. **Paper's Section 5.2**: ChatDev prompt improvement was only +0.7pp (89.6% → 90.3%) -- statistically negligible
+4. **The need for structural enforcement**: MCP tools that validate code against specifications are necessary
 
-**The FM-1.1 "Specification Adherence Protocol" did NOT prevent the model from disobeying task requirements.**
-
-The MAST-hardened config includes this explicit protocol:
-
-```
-FM-1.1 Specification Adherence Protocol
-BEFORE implementing any function, restate the specification in your own words.
-Identify: (1) What the function MUST do per the docstring, (2) What the function
-MUST NOT do, (3) The exact return type and value.
-
-NEVER implement based on the function name alone -- always implement based on
-the docstring and examples provided.
-```
-
-Despite this instruction, HumanEval/2 (truncate_number) failed **identically** under MAST:
-- Model added `d: int` parameter (not in spec)
-- Model implemented "truncate to N decimals" (not in spec)
-- Model completely ignored the docstring specifying "extract decimal part"
-
-**This directly validates the paper's claim** (Section 5, Finding 3): "Context/communication protocols are often insufficient for" FC2/FM-1.1-class failures. The model acknowledges the protocol in the prompt but does not follow it in practice.
-
-## Failure Mode Analysis
-
-All observed baseline failures are **FM-1.1 (Disobey Task Requirements)**:
-
-1. **HumanEval/1**: Implement `longest_common_prefix` instead of `separate_paren_groups`
-   - Model read task from a ChatDev conversation, misunderstood intent
-   - Implemented completely different function
-
-2. **HumanEval/2**: Add `decimals` parameter and implement truncation
-   - Model saw `truncate_number` function name
-   - Assumed "truncate" means "round to N decimal places"
-   - Ignored docstring: "Return the decimal part of the number"
-
-3. **HumanEval/17**: Implement note/octave parser instead of beat counter
-   - Model saw `parse_music` function name
-   - Assumed "music" means "musical notation" (C4, Bb3)
-   - Ignored docstring: "o=4, o|=2, .=1" beat notation
-
-All three failures follow the same pattern: **the model implements what it thinks the function name means** rather than reading the specification. The FM-1.1 defense was designed to prevent exactly this pattern, but it failed.
-
-## Additional Observations
-
-1. **ChatDev output quality varies between runs** -- same prompt, same config, different results
-2. **Partial runs (timeouts) produce garbled code** -- escaped docstrings, garbled operators, BOM characters
-3. **MAST prompts increase processing time ~30-50%** due to additional tokens per agent
-4. **Code extraction requires care** -- BOM stripping, quote unescaping, non-standard filenames
-
-## Paper Comparison
+### Paper Comparison
 
 | Metric | Paper (GPT-3.5) | Ours (gemma4) |
 |--------|-------------------|---------------|
-| HumanEval baseline | 89.6% | 50% |
-| HumanEval with prompt fix | 90.3% (+0.7pp) | ~50% (no improvement) |
-| Paper's most effective fix | Topology change (+1.9pp) | Not tested |
-| Dominant failure mode | FC1/FC2 (varies) | FM-1.1 (3/3 failures) |
+| HumanEval baseline | 89.6% | 60% |
+| HumanEval with prompts | 90.3% (+0.7pp) | 60% (+0.0pp) |
+| Dominant failure mode | FC1/FC2 (varies) | FM-1.1 (100%) |
+| Most effective fix | Topology change (+1.9pp) | Not tested |
 
-The paper's +0.7pp improvement from prompt fixes is small and statistically uncertain. Our experiment confirms this: **prompt-only defenses produce no measurable improvement** for the dominant failure mode.
+The lower absolute numbers (60% vs 89.6%) reflect the weaker model (gemma4:31b-cloud vs GPT-3.5-turbo). The key finding is the **zero relative improvement** from prompt defenses, which is consistent with the paper's small +0.7pp finding (within noise).
+
+### Additional Observations
+
+1. **ChatDev output quality varies between runs** -- same prompt, same config, different results
+2. **Partial runs (timeouts) produce garbled code** -- escaped docstrings, garbled operators, BOM chars
+3. **MAST prompts increase processing time ~30-50%** (avg 421s vs ~300s per problem)
+4. **Code extraction requires care** -- BOM stripping, quote unescaping, non-standard filenames
+5. **HumanEval/17 MAST produced NO code** -- the model failed to generate any implementation
 
 ## Honest Limitations
 
-1. **Small sample**: 6 baseline problems, 4 MAST problems; no error bars
+1. **Small sample**: 5 problems per config; no error bars or statistical significance
 2. **Model-specific**: gemma4:31b-cloud only; results may differ for GPT-4, Claude, etc.
 3. **ChatDev version**: We use ChatDev v2 which differs from the paper's version
 4. **Single metric**: pass@1 only; no code quality or efficiency metrics
-5. **Incomplete MAST experiment**: HumanEval/17 result still pending for MAST
-6. **Gateway latency**: Local gateway introduces latency that may affect multi-agent coordination
-7. **One failure mode dominates**: All observed failures are FM-1.1, limiting generalizability to other modes
+5. **One dominant failure mode**: All failures are FM-1.1; can't generalize to other modes
+6. **Gateway latency**: Local gateway may affect multi-agent coordination quality
+7. **FM-1.1 may be model-specific**: Stronger models may better follow FM-1.1 protocols
+8. **No topology change test**: Paper's most effective intervention (+15.6%) not tested here

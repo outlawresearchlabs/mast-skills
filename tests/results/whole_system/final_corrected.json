@@ -1,0 +1,68 @@
+{
+  "baseline": {
+    "HumanEval/0": {
+      "entry": "has_close_elements",
+      "passed": true,
+      "failure_mode": null
+    },
+    "HumanEval/1": {
+      "entry": "separate_paren_groups",
+      "passed": false,
+      "failure_mode": "FM-1.1: implemented longest_common_prefix instead"
+    },
+    "HumanEval/2": {
+      "entry": "truncate_number",
+      "passed": false,
+      "failure_mode": "FM-1.1: added decimals param, wrong semantics"
+    },
+    "HumanEval/4": {
+      "entry": "mean_absolute_deviation",
+      "passed": true,
+      "failure_mode": null
+    },
+    "HumanEval/10": {
+      "entry": "make_palindrome",
+      "passed": true,
+      "failure_mode": null
+    },
+    "HumanEval/17": {
+      "entry": "parse_music",
+      "passed": false,
+      "failure_mode": "FM-1.1: note/octave parser instead of beat counter"
+    }
+  },
+  "mast": {
+    "HumanEval/0": {
+      "entry": "has_close_elements",
+      "passed": true,
+      "failure_mode": null
+    },
+    "HumanEval/2": {
+      "entry": "truncate_number",
+      "passed": false,
+      "failure_mode": "FM-1.1: added d param, wrong semantics (same as baseline)"
+    },
+    "HumanEval/4": {
+      "entry": "mean_absolute_deviation",
+      "passed": true,
+      "failure_mode": null
+    },
+    "HumanEval/10": {
+      "entry": "make_palindrome",
+      "passed": true,
+      "failure_mode": null
+    },
+    "HumanEval/17": {
+      "entry": "parse_music",
+      "passed": false,
+      "failure_mode": "FM-1.1: no code produced (empty code_workspace)"
+    }
+  },
+  "shared_problems": [
+    "HumanEval/0",
+    "HumanEval/2",
+    "HumanEval/4",
+    "HumanEval/10",
+    "HumanEval/17"
+  ]
+}

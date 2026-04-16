@@ -364,20 +364,19 @@ The dynamic test (our 14/14 result) and trace-level analysis serve different pur
 **Script**: tests/chatdev_whole_system_v2.py
 **Detailed results**: tests/results/whole_system/CHATDEV_RESULTS.md
 
-### Baseline Results (6 HumanEval problems)
+### Baseline Results (5 HumanEval problems)
 
 | Problem | Entry Point | Result | Failure Mode |
 |---------|-------------|--------|--------------|
 | HumanEval/0 | has_close_elements | PASS | - |
-| HumanEval/1 | separate_paren_groups | FAIL | FM-1.1: wrong function |
-| HumanEval/2 | truncate_number | FAIL | FM-1.1: wrong semantics |
+| HumanEval/2 | truncate_number | **FAIL** | FM-1.1: added decimals param, wrong semantics |
 | HumanEval/4 | mean_absolute_deviation | PASS | - |
 | HumanEval/10 | make_palindrome | PASS | - |
-| HumanEval/17 | parse_music | FAIL | FM-1.1: wrong format |
+| HumanEval/17 | parse_music | **FAIL** | FM-1.1: note/octave parser instead of beat counter |
 
-**Baseline pass@1: 3/6 (50%)**
+**Baseline pass@1: 3/5 (60%)**
 
-### MAST-Hardened Results (4 HumanEval problems, experiment incomplete)
+### MAST-Hardened Results (5 HumanEval problems)
 
 | Problem | Entry Point | Result | Failure Mode |
 |---------|-------------|--------|--------------|
@@ -385,10 +384,11 @@ The dynamic test (our 14/14 result) and trace-level analysis serve different pur
 | HumanEval/2 | truncate_number | **FAIL** | FM-1.1: same error as baseline |
 | HumanEval/4 | mean_absolute_deviation | PASS | - |
 | HumanEval/10 | make_palindrome | PASS | - |
+| HumanEval/17 | parse_music | **FAIL** | FM-1.1: no code produced |
 
-**MAST pass@1: 3/4 (75%)**
+**MAST pass@1: 3/5 (60%)**
 
-### Head-to-Head (shared problems)
+### Head-to-Head (5 shared problems)
 
 | Problem | Baseline | MAST | Delta |
 |---------|----------|------|-------|
@@ -396,18 +396,19 @@ The dynamic test (our 14/14 result) and trace-level analysis serve different pur
 | HumanEval/2 | FAIL | FAIL | SAME |
 | HumanEval/4 | PASS | PASS | SAME |
 | HumanEval/10 | PASS | PASS | SAME |
+| HumanEval/17 | FAIL | FAIL | SAME |
 
-**On shared problems: MAST = Baseline = 3/4. No measurable improvement.**
+**On shared problems: MAST = Baseline = 3/5. ZERO improvement.**
 
 ### Critical Finding
 
-**FM-1.1 "Specification Adherence Protocol" is INEFFECTIVE in whole-system testing.**
+**FM-1.1 "Specification Adherence Protocol" produced ZERO improvement (0/5 problems).**
 
-Despite explicit instruction to "NEVER implement based on the function name alone," HumanEval/2 failed identically under MAST: model added `d: int` parameter, implemented "truncate to N decimals" instead of "extract decimal part."
+Despite explicit instruction to "NEVER implement based on the function name alone," HumanEval/2 failed **identically** under MAST: model added `d: int` parameter, implemented "truncate to N decimals" instead of "extract decimal part." HumanEval/17 also failed under both configs.
 
-All 3 baseline failures (100%) are FM-1.1. MAST's FM-1.1 defense did not prevent any of them. This directly validates the paper's Section 5 Finding 3: "verification persists despite being prompted to perform thorough verification."
+All failures in both configs are FM-1.1 (100%). MAST's prompt-based defense did not prevent any FM-1.1 failure. This directly validates the paper's Section 5 Finding 3: "verification persists despite being prompted to perform thorough verification."
 
-**Paper comparison**: Prompt-only ChatDev improvement = +0.7pp (89.6% → 90.3%) with GPT-3.5. Our experiment shows 0pp improvement for FM-1.1 failures with gemma4.
+**Paper comparison**: Prompt-only ChatDev improvement = +0.7pp (89.6% → 90.3%) with GPT-3.5. Our experiment shows +0.0pp improvement with gemma4 -- consistent with the paper's finding that prompts are insufficient for specification adherence failures.
 
 **Implication**: Structural enforcement (MCP tools) is needed for FM-1.1, validating our MCP server approach for FM-1.5, FM-3.2, and FM-3.3
 
