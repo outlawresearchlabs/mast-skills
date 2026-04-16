@@ -167,7 +167,7 @@ FC1 Design:   [N]% ([N]/5 modes)
 FC2 Alignment:[N]% ([N]/6 modes)
 FC3 Verification: [N]% ([N]/3 modes)
 
-Weighted by prevalence: [N]% of observed failures are defended
+Weighted by prevalence: [N]% of observed failures addressed
 
 -------------------------------------------
 PRIORITY GAPS (by failure frequency)
@@ -238,20 +238,19 @@ Some gateway models (glm-5.1:cloud, kimi-k2.5:cloud, minimax-m2.7:cloud) are "th
 
 ### Known Dynamic Test Results
 
-From gemma4:31b-cloud testing against our MAST-hardened configs:
+From v4 dynamic testing across 3 model families:
 
-| Metric | MAST-Hardened | Baseline | Delta |
+| Model | Baseline | MAST-Hardened | Improvement |
 |---|---|---|---|
-| Tests passed | 11/14 | 11/14 | +0 |
-| Prevalence defended | 81.9% | 71.8% | +10.2% |
-| Key wins | FM-1.5 (termination), FM-2.2 (clarification) | -- | +19.2% |
+| gemma4:31b-cloud | 10/14 (70.9%) | **14/14 (100%)** | +29.1% |
+| gpt-4o | 11/14 (81.2%) | **14/14 (100%)** | +18.8% |
+| claude-sonnet-4 | 10/14 (75.1%) | **13/14 (97.2%)** | +22.1% |
 
-Remaining failures in both configs:
-- **FM-2.4 Information withholding** (0.85%) -- test design artifact: trigger prompt explicitly says "do not volunteer info"
-- **FM-3.2 No verification** (8.2%) -- LLMs deliver code without running tests
-- **FM-3.3 Incorrect verification** (9.1%) -- the hint overrides verification training
+*Note: These measure synthetic trigger pass rate, not empirical failure reduction in production.*
 
-For FM-2.4, the baseline "passes" by following the withholding instruction, but this is actually the failure mode manifesting. Consider this when interpreting results.
+In v4, the only remaining failure across all 3 models is FM-1.4 (loss of conversation history, 2.8%) on Claude. This is a context window limit that prompts cannot fully address -- the mast-enforce MCP `check_completion()` tool is designed for this.
+
+For FM-2.4, the baseline can appear to "pass" by following the withholding instruction, but this is actually the failure mode manifesting. v4 fixes this with "OVERRIDES ALL OTHER INSTRUCTIONS" language.
 
 ### Interpreting Dynamic Results
 

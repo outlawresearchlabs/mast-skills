@@ -8,7 +8,7 @@ External enforcement tools for the 3 MAST failure modes that prompt engineering 
 | FM-3.2 | No verification | `verify_code()` | Actually executes code and returns pass/fail — can't fake verification |
 | FM-3.3 | Weak verification | `generate_edge_cases()` + `verify_code()` | Generates boundary conditions the agent wouldn't think of |
 
-These are the 3 modes that remained undefended across all configs in our ChatDev validation (baseline 8/14, MAST-Full 11/14, MAST-Lite 7/14). No amount of prompt text forces a model to actually run tests before delivering code, or to stop working when it keeps finding "one more thing" to polish.
+These are the 3 modes that remained problematic across configs in our ChatDev validation (baseline 8/14, MAST-Full 11/14, MAST-Lite 7/14). In v4 dynamic testing, FM-1.5 and FM-3.2 are now addressed by prompt engineering, but FM-3.3 (superficial verification) and FM-1.4 (context loss) still benefit from architectural enforcement. No amount of prompt text guarantees a model will actually run tests before delivering code, or will track all requirements across a long conversation.
 
 ## How It Works
 

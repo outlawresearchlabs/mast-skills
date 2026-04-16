@@ -74,7 +74,7 @@ python mast_judge.py --validate
 
 ### HuggingFace Dataset
 
-The paper authors released 1K+ annotated traces:
+The paper authors released 1,242 LLM-annotated traces:
 - Full dataset: `mcemri/MAD` -> `MAD_full_dataset.json`
 - Human-labeled: `mcemri/MAD` -> `MAD_human_labelled_dataset.json`
 

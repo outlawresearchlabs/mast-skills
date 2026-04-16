@@ -26,7 +26,7 @@
 
 **Coverage**: 14/14 (100%) DEFENDED, 100.0% prevalence
 
-*Note: Static audit measures keyword presence, not behavioral effectiveness. Dynamic testing (failure injection) is the real validation of defense performance.*
+*Note: Static audit measures keyword/pattern presence in config files. This does not prove behavioral effectiveness -- a config can contain the right keywords but still fail dynamic testing. See dynamic test results above for behavioral validation.*
 
 ### No-MAST Baseline (original OpenClaw-style templates)
 

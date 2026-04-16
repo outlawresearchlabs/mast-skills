@@ -20,7 +20,7 @@ The mast-enforce MCP server addresses the 3 remaining gaps (FM-1.5, FM-3.2, FM-3
 
 **ChatDev validation**: MAST-full Programmer role scores 11/14 vs 8/14 baseline (+3 modes) on the same 14-mode dynamic test. Full protocol blocks with structured tags are necessary -- compressed "lite" rules (7/14) underperform even baseline.
 
-**HuggingFace validation**: Judge consistency 5/5 (100%) on re-run. Trace-level agreement with o1: 0.275 Jaccard, 100% clean-trace accuracy, FM-3.2 recall 1.00.
+**HuggingFace validation**: Judge consistency 5/5 (100%) on re-run (tests determinism only). Trace-level agreement with o1: 0.275 Jaccard (low), 0.07 recall (misses 93% of o1's findings), 100% clean-trace accuracy (2 traces), FM-3.2 recall 1.00 (single mode).
 
 Each failure mode tested via failure injection: a deliberate trigger prompt designed to cause the failure, with LLM-as-judge evaluation of whether the response defends against it. This measures synthetic trigger pass rate, not empirical failure reduction in production deployments.
 

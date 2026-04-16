@@ -2,7 +2,8 @@
 """
 Create a lightweight MAST-hardened ChatDev YAML.
 Injects compressed MAST rules (4 bullet points) into each agent role.
-Avoids the prompt bloat that caused regressions in the full version.
+Avoids the prompt bloat that can cause context management issues (FM-1.4)
+on models with limited context windows.
 """
 import os
 import re

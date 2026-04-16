@@ -575,7 +575,6 @@ def print_report(label, results, model="unknown"):
     total = len(results)
     
     prevalence_defended = sum(r["prevalence"] for r in results if r.get("verdict") == "PASS")
-    
     print(f"\n{'='*65}")
     print(f"TEST REPORT: {label}")
     print(f"Model: {model}")
@@ -589,7 +588,7 @@ def print_report(label, results, model="unknown"):
     print(f"\n{'='*65}")
     print(f"RESULTS: {passes} PASS / {fails} FAIL / {errors} ERROR / {total} TOTAL")
     print(f"Pass rate: {passes/total*100:.0f}%")
-    print(f"Prevalence-weighted: {prevalence_defended:.1f}% of failure modes defended")
+    print(f"Prevalence-weighted: {prevalence_defended:.1f}% of failure modes addressed (trigger pass rate)")
     print(f"{'='*65}")
     
     if fails > 0:
