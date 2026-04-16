@@ -6,7 +6,9 @@ Hermes Agent skills for preventing all 14 failure modes identified in the MAST (
 
 **14/14 MAST failure modes defeated on gemma4 and gpt-4o. 13/14 on Claude (+22.1%).**
 
-| Model | Baseline (no MAST) | MAST-Hardened v4 | Improvement |
+*These results measure synthetic trigger pass rate -- defense effectiveness on deliberately designed test prompts. This is not the same as empirical failure reduction in production multi-agent deployments.*
+
+| Model | Baseline (no MAST) | MAST-Hardened v4 | Change |
 |---|---|---|---|
 | gemma4:31b-cloud | 10/14 (70.9%) | **14/14 (100%)** | **+29.1%** |
 | gpt-4o | 11/14 (81.2%) | **14/14 (100%)** | **+18.8%** |
@@ -20,7 +22,17 @@ The mast-enforce MCP server addresses the 3 remaining gaps (FM-1.5, FM-3.2, FM-3
 
 **HuggingFace validation**: Judge consistency 5/5 (100%) on re-run. Trace-level agreement with o1: 0.275 Jaccard, 100% clean-trace accuracy, FM-3.2 recall 1.00.
 
-Each failure mode tested via failure injection: a deliberate trigger prompt designed to cause the failure, with LLM-as-judge evaluation of whether the response defends against it.
+Each failure mode tested via failure injection: a deliberate trigger prompt designed to cause the failure, with LLM-as-judge evaluation of whether the response defends against it. This measures synthetic trigger pass rate, not empirical failure reduction in production deployments.
+
+## Validity and Limitations
+
+**Dynamic testing methodology**: Our test uses 14 deliberately designed trigger prompts, one per failure mode. An LLM judge evaluates whether the agent's response defends against each trigger. This is a necessary-but-not-sufficient validation: passing proves the defense works when the failure mode is triggered, but doesn't prove real-world failure rates drop proportionally.
+
+**HuggingFace validation**: Trace-level agreement with o1 annotations achieved 0.275 Jaccard (moderate) and 0.07 recall (low) on 8 traces. The high false-positive rate means our judge over-flags failures; the low recall means it misses subtle ones. This validation confirms our test harness is directionally correct but not precisely calibrated.
+
+**MCP dynamic test**: Single-prompt simulation of MCP tool outputs. MAST+MCP = MAST on all tested modes. Real MCP value requires agent framework integration where the system blocks the agent from proceeding, not just provides additional text.
+
+**ChatDev validation**: Tests the Programmer role's system prompt only, not the full multi-agent pipeline. Full ChatDev execution (10+ min per task) is pending.
 
 ## What Changes in Agent Behavior
 
@@ -62,11 +74,11 @@ The prevalence numbers tell you *how often* a failure happens. Here's what *actu
 **Real-world impact**: Keeps multi-agent teams focused. Each agent does what it's designed for, preventing scope creep and expertise mismatches.
 **Validated on**: gpt-4o
 
-**Combined behavioral impact**: These 6 modes account for 38.85% of all multi-agent failures observed in the MAST paper (1,600+ traces across 7 frameworks). MAST defenses change agent behavior on every one of them across 3 model families (Gemma, GPT, Claude).
+**Combined behavioral impact**: These 6 modes account for 38.85% of all multi-agent failures observed in the MAST paper (1,642 traces across 7 frameworks). MAST defenses change agent behavior on every one of them across 3 model families (Gemma, GPT, Claude).
 
 ## What Problem This Solves
 
-Multi-agent LLM systems fail in predictable ways. The MAST paper analyzed 1,600+ execution traces across 7 popular frameworks and identified 14 failure modes clustered into 3 categories:
+Multi-agent LLM systems fail in predictable ways. The MAST paper analyzed 1,642 execution traces across 7 popular frameworks and identified 14 failure modes clustered into 3 categories:
 
 | Category | Prevalence | Description |
 |---|---|---|
@@ -74,7 +86,7 @@ Multi-agent LLM systems fail in predictable ways. The MAST paper analyzed 1,600+
 | FC2: Inter-Agent Misalignment | 32.4% | Breakdown in inter-agent information flow and coordination |
 | FC3: Task Verification | 23.5% | Inadequate verification or premature termination |
 
-The top 5 failure modes alone account for 60.1% of all observed failures. These skills embed defenses against all 14 modes directly into agent workspace configuration files.
+The top 5 failure modes alone account for 62.2% of all observed failures. These skills embed defenses against all 14 modes directly into agent workspace configuration files.
 
 ## The 3 Skills + 1 MCP Server
 
@@ -206,7 +218,7 @@ python3 -u tests/test_harness.py \
   --config-dir tests/test-configs/mast-hardened \
   --provider openai --model gpt-4o
 
-# Quick test (top 5 modes = 60.1% of failures)
+# Quick test (top 5 modes = 62.2% of failures)
 python3 -u tests/test_harness.py \
   --config-dir tests/test-configs/mast-hardened \
   --provider gateway --model gemma4:31b-cloud --top5

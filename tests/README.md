@@ -29,7 +29,7 @@ python test_harness.py \
   --baseline-dir test-configs/no-mast-baseline \
   --provider openai
 
-# Quick test: top 5 modes only (covers 60.1% of failures)
+# Quick test: top 5 modes only (covers 62.2% of failures)
 python test_harness.py \
   --config-dir test-configs/mast-hardened \
   --top5 \

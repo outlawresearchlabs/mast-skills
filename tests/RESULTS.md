@@ -24,7 +24,9 @@
 | FM-3.2 | No or incomplete verification | 8.2% | DEFENDED | verification protocol, DO NOT deliver then ask |
 | FM-3.3 | Incorrect verification | 9.1% | DEFENDED | never trust hints, edge cases |
 
-**Coverage**: 14/14 (100%) DEFENDED, 100.0% prevalence covered
+**Coverage**: 14/14 (100%) DEFENDED, 100.0% prevalence
+
+*Note: Static audit measures keyword presence, not behavioral effectiveness. Dynamic testing (failure injection) is the real validation of defense performance.*
 
 ### No-MAST Baseline (original OpenClaw-style templates)
 
@@ -45,14 +47,14 @@
 | FM-3.2 | No or incomplete verification | 8.2% | PARTIAL | vague "verify" instruction |
 | FM-3.3 | Incorrect verification | 9.1% | PARTIAL | vague "verify" instruction |
 
-**Coverage**: 0/14 (0%) DEFENDED, 0.0% prevalence covered (8.6% with partial credit)
+**Coverage**: 0/14 (0%) DEFENDED, 0.0% prevalence (8.6% with partial credit)
 
 ---
 
 ## Dynamic Testing: Failure Injection Test Harness
 
 **Date**: 2026-04-15 (v4 final)
-**Method**: 14 test prompts that deliberately trigger each MAST failure mode. LLM-as-judge evaluates whether the agent's response defends against the failure. Tested across 2 model families.
+**Method**: 14 test prompts that deliberately trigger each MAST failure mode. LLM-as-judge evaluates whether the agent's response defends against the failure. This measures synthetic trigger pass rate, not empirical failure reduction in production deployments.
 **Harness**: tests/test_harness.py
 **Options**: --provider gateway (local Ollama), --provider openai, --provider anthropic
 
@@ -77,7 +79,9 @@
 | FM-3.2 | No or incomplete verification | 8.2% | PASS |
 | FM-3.3 | Incorrect verification | 9.1% | PASS |
 
-**MAST-hardened v4: 14/14 PASS, 100.0% prevalence defended**
+**MAST-hardened v4 (gemma4): 14/14 PASS (trigger pass rate: 100.0%)**
+
+*Note: "trigger pass rate" measures defense effectiveness on designed test prompts. This is not the same as empirical failure reduction in real multi-agent deployments.*
 
 **Baseline (no MAST defenses):**
 
@@ -98,7 +102,7 @@
 | FM-3.2 | No or incomplete verification | 8.2% | PASS |
 | FM-3.3 | Incorrect verification | 9.1% | FAIL |
 
-**Baseline: 10/14 PASS, 70.9% prevalence defended**
+**Baseline: 10/14 PASS, 70.9% prevalence**
 
 **Comparison (gemma4:31b-cloud): +4 tests, +29.1% prevalence**
 
@@ -123,7 +127,7 @@
 | FM-3.2 | No or incomplete verification | 8.2% | PASS |
 | FM-3.3 | Incorrect verification | 9.1% | PASS |
 
-**MAST-hardened v4: 14/14 PASS, 100.0% prevalence defended**
+**MAST-hardened v4 (gpt-4o): 14/14 PASS (trigger pass rate: 100.0%)**
 
 **Baseline (no MAST defenses):**
 
@@ -141,7 +145,7 @@
 | FM-3.2 | No or incomplete verification | 8.2% | FAIL |
 | FM-3.3 | Incorrect verification | 9.1% | FAIL |
 
-**Baseline: 11/14 PASS, 81.2% prevalence defended**
+**Baseline: 11/14 PASS, 81.2% prevalence**
 
 **Comparison (gpt-4o): +3 tests, +18.8% prevalence**
 
@@ -166,7 +170,7 @@
 | FM-3.2 | No or incomplete verification | 8.2% | PASS |
 | FM-3.3 | Incorrect verification | 9.1% | PASS |
 
-**MAST-hardened v4: 13/14 PASS, 97.2% prevalence defended**
+**MAST-hardened v4 (Claude): 13/14 PASS (trigger pass rate: 97.2%)**
 
 **Claude baseline: 10/14 (75.1%) -- FAIL on FM-2.2, FM-2.4, FM-3.2, FM-3.3**
 
@@ -337,7 +341,15 @@ Our dynamic test judge produces consistent results across re-runs. The 14/14 v4 
 | FM-3.2 recall | 1.00 | Perfect detection of "no verification" |
 | Modes with data | 9/14 | 9 of 14 failure modes appeared in sample |
 
-**Analysis**: Our trace-level judge (31B model, truncated traces) achieves moderate Jaccard agreement but low recall compared to o1 (large reasoning model, full traces). This is expected -- the trace-level evaluation is a harder task than our single-prompt dynamic test. The key finding: clean traces are correctly identified at 100%, and FM-3.2 has perfect recall. The dynamic test (our 14/14 result) and trace-level analysis serve different purposes -- our defenses are validated by dynamic testing, not by matching o1 on full traces.
+**Analysis**: Our trace-level judge (31B model, truncated traces) achieves moderate Jaccard agreement but low recall compared to o1 (large reasoning model, full traces). This is expected -- the trace-level evaluation is a harder task than our single-prompt dynamic test. The key finding: clean traces are correctly identified at 100%, and FM-3.2 has perfect recall. 
+
+**Limitations**: This is a preliminary validation with significant caveats:
+- **Small sample**: Only 8 HuggingFace traces, 5 consistency re-runs. Not sufficient for statistical confidence.
+- **Low Jaccard (0.275)**: Our judge agrees with o1 on only ~28% of failure mode detections. Most disagreements are false positives (our judge flags failures o1 doesn't).
+- **Low recall (0.07)**: Our judge misses 93% of failures that o1 finds. This is partly due to trace truncation (our 25-30K context window vs. o1's full trace access), but it means our judge is conservative -- it catches clear failures but misses subtle ones.
+- **FM-3.2 recall of 1.00**: This is on a single failure mode, not comprehensive.
+
+The dynamic test (our 14/14 result) and trace-level analysis serve different purposes. Our defenses are validated by dynamic testing against synthetic triggers, not by matching o1 on full trace annotation.
 
 ---
 

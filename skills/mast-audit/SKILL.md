@@ -227,7 +227,7 @@ Gateway defaults to `http://127.0.0.1:11434/v1` (configurable via `GATEWAY_BASE_
 ### Key Flags
 
 - `--baseline-dir <path>` -- compare MAST-hardened vs no-MAST baseline configs side-by-side
-- `--top5` -- test only the 5 highest-prevalence modes (60.1% of failures) for quick shakedown
+- `--top5` -- test only the 5 highest-prevalence modes (62.2% of failures) for quick shakedown
 - `--mode FM-X.Y` -- test specific modes only
 - `--list-models` -- show available gateway models
 - `--output results.json` -- save results to JSON
@@ -296,7 +296,7 @@ If the user just wants a fast check without the full report, scan for the top 5 
 4. FM-1.1 Disobey task spec (11.8%)
 5. FM-3.3 Incorrect verification (9.1%)
 
-These 5 modes cover 60.1% of all failures. A quick check of just these is often sufficient.
+These 5 modes cover 62.2% of all failures. A quick check of just these is often sufficient.
 
 ## Pitfalls
 

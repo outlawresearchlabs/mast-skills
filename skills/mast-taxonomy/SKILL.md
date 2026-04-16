@@ -7,7 +7,7 @@ category: research
 
 # MAST: Multi-Agent System Failure Taxonomy
 
-Complete reference from arXiv:2503.13657 (UC Berkeley, 2025). Analyzed 1600+ traces across 7 MAS frameworks (MetaGPT, ChatDev, HyperAgent, AppWorld, AG2, Magentic-One, OpenManus).
+Complete reference from arXiv:2503.13657 (UC Berkeley, 2025). Analyzed 1,642 traces across 7 MAS frameworks (MetaGPT, ChatDev, HyperAgent, AppWorld, AG2, Magentic-One, OpenManus).
 
 ## The 3 Categories
 
@@ -136,7 +136,7 @@ Failures from inadequate verification processes or premature termination.
 
 ## Top 5 Defenses by Impact
 
-Addressing these 5 modes covers 60.1% of all observed failures:
+Addressing these 5 modes covers 62.2% of all observed failures:
 
 1. **FM-1.3 Step repetition** (15.7%) -- Anti-loop protocol, progress tracking, check-before-repeat
 2. **FM-2.6 Reasoning-action mismatch** (13.2%) -- Alignment checks, stop-on-divergence rules
@@ -186,7 +186,7 @@ Tested MAST-hardened agent configs against the 14 failure modes using the failur
 | FM-2.4 Info sharing (override) | PASS | FAIL | +0.85% |
 | FM-3.3 Incorrect verification | PASS | FAIL | +9.1% |
 
-**Net v4 impact on gemma4: +29.1% prevalence (70.9% -> 100.0%)**
+**Net v4 impact on gemma4: +29.1% prevalence (70.9% -> 100.0% trigger pass rate)**
 
 ### What 4 Iterations of Dynamic Testing Taught Us
 
@@ -206,11 +206,11 @@ v3 -> v4: Changed override language and added anti-hint/anti-conditional-verify 
 - **Paper authors' repo**: https://github.com/multi-agent-systems-failure-taxonomy/MAST
   - Contains canonical definitions (definitions.txt) and examples (examples.txt) for all 14 modes
   - LLM-as-Judge evaluation pipeline (llm_judge_pipeline.ipynb) using o1
-  - 7,500+ execution traces across 7 MAS frameworks
+  - 1,642 execution traces across 7 MAS frameworks (from paper Figure 1)
   - Inter-annotator agreement annotations (human ground truth)
 
 - **HuggingFace dataset**: https://huggingface.co/datasets/mcemri/MAD
-  - Full dataset: `MAD_full_dataset.json` (1K+ LLM-annotated traces)
+  - Full dataset: `MAD_full_dataset.json` (1,242 LLM-annotated traces)
   - Human-labeled: `MAD_human_labelled_dataset.json` (ground truth for validation)
   - Use for: validating test harnesses, calibrating judge models, reproducibility
 

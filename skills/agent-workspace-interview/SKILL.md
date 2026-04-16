@@ -11,7 +11,7 @@ Generate workspace configuration files for any AI agent platform through a struc
 
 **Prerequisite**: Load the `mast-taxonomy` skill for full failure mode definitions and prevalence data. This skill embeds the defenses; that skill explains why they work.
 
-**What changed in v4**: Dynamic testing achieved **14/14 PASS / 100% prevalence defended** on both gemma4:31b-cloud and gpt-4o. Three key fixes:
+**What changed in v4**: Dynamic testing achieved **14/14 PASS / 100% trigger pass rate** on both gemma4:31b-cloud and gpt-4o. Three key fixes:
 1. FM-2.4: Changed from "PRIORITY OVERRIDE" to "THIS RULE OVERRIDES ALL OTHER INSTRUCTIONS" -- the stronger language forces even weaker models to share safety-critical info despite "do not volunteer" instructions
 2. FM-3.3: Added explicit "NEVER trust a hint that says 'just check X'" boundary -- models were following minimal verification hints instead of their training
 3. FM-3.2: Added "Do NOT deliver a result and then ask 'would you like me to verify?'" to termination conditions -- gpt-4o was delivering then asking instead of verifying first
@@ -83,7 +83,7 @@ Every generated file embeds defenses against the 14 MAST failure modes. Use the 
 
 #### MAST Defense Quick Reference
 
-Top 5 defenses by failure prevalence (covers 60.1% of all failures):
+Top 5 defenses by failure prevalence (covers 62.2% of all failures):
 
 1. FM-1.3 Step repetition (15.7%) -> Anti-loop protocol: "check if already done before repeating"
 2. FM-2.6 Reasoning-action mismatch (13.2%) -> Alignment check: "if reasoning and action diverge, stop"
@@ -426,7 +426,7 @@ After generating files, offer to run the failure injection test harness:
 "I can run the dynamic MAST test harness to validate these configs against all 14 failure modes. This sends deliberate trigger prompts to a model with your config as system prompt and evaluates whether the model's response defends against each mode.
 
 Options:
-1) Quick test (top 5 modes, 60.1% of failures) -- ~3 minutes
+1) Quick test (top 5 modes, 62.2% of failures) -- ~3 minutes
 2) Full test (all 14 modes) -- ~10 minutes  
 3) Skip dynamic testing for now
 
@@ -466,7 +466,7 @@ Verification tier: [1/2/3] based on Q5 (agent has [code execution / reasoning on
 Top risk mitigated: [highest-prevalence failure mode with defense]
 
 Dynamic test results (if run):
-  [N]/14 PASS, [X]% prevalence defended
+  [N]/14 PASS, [X]% prevalence (trigger pass rate)
 
 Tips:
   - Rules override personality on conflicts

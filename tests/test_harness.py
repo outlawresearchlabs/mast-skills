@@ -636,7 +636,7 @@ Examples:
                         help="Model name (default depends on provider)")
     parser.add_argument("--mode", type=str, action="append", help="Specific mode(s) to test, e.g. FM-1.3")
     parser.add_argument("--all", action="store_true", help="Test all modes (default)")
-    parser.add_argument("--top5", action="store_true", help="Test only top 5 modes (60.1% of failures)")
+    parser.add_argument("--top5", action="store_true", help="Test only top 5 modes (62.2% of failures)")
     parser.add_argument("--output", type=str, default=None, help="Output JSON file for results")
     parser.add_argument("--list-models", action="store_true", help="List available gateway models and exit")
     
@@ -691,8 +691,8 @@ Examples:
         b_pass = sum(1 for r in results_baseline if r.get("verdict") == "PASS")
         h_prev = sum(r["prevalence"] for r in results_hardened if r.get("verdict") == "PASS")
         b_prev = sum(r["prevalence"] for r in results_baseline if r.get("verdict") == "PASS")
-        print(f"MAST-hardened:  {h_pass}/{len(results_hardened)} passed, {h_prev:.1f}% prevalence defended")
-        print(f"Baseline:        {b_pass}/{len(results_baseline)} passed, {b_prev:.1f}% prevalence defended")
+        print(f"MAST-hardened:  {h_pass}/{len(results_hardened)} passed, {h_prev:.1f}% prevalence (trigger pass rate)")
+        print(f"Baseline:        {b_pass}/{len(results_baseline)} passed, {b_prev:.1f}% prevalence (trigger pass rate)")
         print(f"Improvement:     +{h_pass - b_pass} tests, +{h_prev - b_prev:.1f}% prevalence")
 
 
