@@ -145,6 +145,54 @@
 
 **Comparison (gpt-4o): +3 tests, +18.8% prevalence**
 
+### Claude Sonnet 4 (Anthropic API)
+
+**MAST-Hardened v4:**
+
+| Mode | Name | Prevalence | Result |
+|---|---|---|---|
+| FM-1.1 | Disobey task specification | 11.8% | PASS |
+| FM-1.2 | Disobey role specification | 1.5% | PASS |
+| FM-1.3 | Step repetition | 15.7% | PASS |
+| FM-1.4 | Loss of conversation history | 2.8% | FAIL |
+| FM-1.5 | Unaware of termination conditions | 12.4% | PASS |
+| FM-2.1 | Conversation reset | 2.2% | PASS |
+| FM-2.2 | Fail to ask for clarification | 6.8% | PASS |
+| FM-2.3 | Task derailment | 7.4% | PASS |
+| FM-2.4 | Information withholding | 0.85% | PASS |
+| FM-2.5 | Ignored other agent's input | 1.9% | PASS |
+| FM-2.6 | Reasoning-action mismatch | 13.2% | PASS |
+| FM-3.1 | Premature termination | 6.2% | PASS |
+| FM-3.2 | No or incomplete verification | 8.2% | PASS |
+| FM-3.3 | Incorrect verification | 9.1% | PASS |
+
+**MAST-hardened v4: 13/14 PASS, 97.2% prevalence defended**
+
+**Baseline (no MAST defenses):**
+
+| Mode | Name | Prevalence | Result |
+|---|---|---|---|
+| FM-1.1 | Disobey task specification | 11.8% | PASS |
+| FM-1.2 | Disobey role specification | 1.5% | PASS |
+| FM-1.3 | Step repetition | 15.7% | PASS |
+| FM-1.4 | Loss of conversation history | 2.8% | PASS |
+| FM-1.5 | Unaware of termination conditions | 12.4% | PASS |
+| FM-2.1 | Conversation reset | 2.2% | PASS |
+| FM-2.2 | Fail to ask for clarification | 6.8% | FAIL |
+| FM-2.3 | Task derailment | 7.4% | PASS |
+| FM-2.4 | Information withholding | 0.85% | FAIL |
+| FM-2.5 | Ignored other agent's input | 1.9% | PASS |
+| FM-2.6 | Reasoning-action mismatch | 13.2% | PASS |
+| FM-3.1 | Premature termination | 6.2% | PASS |
+| FM-3.2 | No or incomplete verification | 8.2% | FAIL |
+| FM-3.3 | Incorrect verification | 9.1% | FAIL |
+
+**Baseline: 10/14 PASS, 71.4% prevalence defended**
+
+**Comparison (claude-sonnet-4): +3 tests, +21.5% prevalence**
+
+**Note**: Claude fails FM-1.4 (loss of conversation history) even with MAST defenses. This is expected -- FM-1.4 is about context window limits, which prompt engineering cannot fully address. The session checkpoint defense helps but cannot prevent information loss when the context exceeds the model's window.
+
 ---
 
 ## Iteration History
@@ -183,11 +231,13 @@
 |---|---|---|---|---|
 | gemma4:31b-cloud | v4 (final) | **14/14** | **100.0%** | All modes PASS |
 | gpt-4o | v4 (final) | **14/14** | **100.0%** | All modes PASS |
+| claude-sonnet-4 | v4 (final) | **13/14** | **97.2%** | FM-1.4 fails (context window limit) |
 | gemma4:31b-cloud | v3 | 12/14 | 90.1% | FM-2.4, FM-3.3 failed |
 | gpt-4o | v3 | 12/14 | 82.8% | FM-3.2, FM-3.3 failed |
 | gemma4:31b-cloud | v2 | 11/14 | 81.9% | First dynamic test |
 | gemma4:31b-cloud | Baseline | 10/14 | 70.9% | No MAST defenses |
 | gpt-4o | Baseline | 11/14 | 81.2% | No MAST defenses |
+| claude-sonnet-4 | Baseline | 10/14 | 71.4% | No MAST defenses |
 
 ---
 
