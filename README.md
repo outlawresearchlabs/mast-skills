@@ -37,7 +37,7 @@ Each failure mode tested via failure injection: a deliberate trigger prompt desi
 
 The paper's most effective intervention was not prompt engineering. On ChatDev ProgramDev, prompt improvements yielded +9.4% task completion, while topology change (cyclic graph with CTO sign-off gate) yielded +15.6%. Our skills and test harness address only the prompt layer. The mast-enforce MCP server adds structural enforcement for 3 modes (FM-1.5, FM-3.2, FM-3.3), but it has not been validated in an actual multi-agent framework.
 
-**No whole-system validation**: Our test evaluates single-agent responses to failure triggers, not whether multi-agent systems with MAST defenses actually complete tasks more successfully. This is the most important unvalidated assumption.
+**Whole-system validation (completed)**: ChatDev HumanEval benchmark (5 problems, gemma4:31b-cloud) shows **Baseline = MAST = 3/5 pass@1 (ZERO improvement)**. All failures are FM-1.1 (Disobey Task Requirements). The FM-1.1 "Specification Adherence Protocol" -- explicitly telling the model "NEVER implement based on the function name alone" -- did not prevent any FM-1.1 failure. HumanEval/2 (truncate_number) failed identically in both configs. This confirms prompt-only defenses are insufficient for specification adherence failures, validating both the paper's claim and our MCP enforcement approach.
 
 **No statistical significance**: Results are single trials per mode per model. The paper uses 6 repetitions and Wilcoxon tests with p-values.
 
@@ -45,7 +45,7 @@ The paper's most effective intervention was not prompt engineering. On ChatDev P
 
 **MCP dynamic test**: Single-prompt simulation of MCP tool outputs. MAST+MCP = MAST on all tested modes across gemma4 and Claude. This confirms no regression but cannot demonstrate real value -- that requires agent framework integration where the system structurally blocks premature completion or unverified delivery.
 
-**ChatDev validation**: Tests the Programmer role's system prompt only, not the full multi-agent pipeline. Full ChatDev execution (10+ min per task) is pending.
+**ChatDev whole-system validation**: HumanEval through ChatDev pipeline (baseline vs MAST-hardened). MAST defenses produced zero improvement on 5 shared problems (both 3/5). All failures FM-1.1. Validates paper claim: prompts insufficient for FC2/FM-1.1.
 
 **System-specific failure profiles**: The paper shows dramatically different failure distributions across MAS frameworks (AppWorld dominant=FM-3.1 at 38%, OpenManus=FM-1.3, HyperAgent=FM-1.3+FM-3.3). Our 14-mode test treats all systems equally. Defenses should ideally be prioritized by the target system's specific failure profile.
 
