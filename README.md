@@ -88,7 +88,7 @@ Pure knowledge base of the 14 failure modes, their definitions, prevalence perce
 - Designing a new multi-agent architecture
 - Any scenario where you need to understand or reference MAST failure patterns
 
-### 2. agent-workspace-interview (Config Generator) — v4
+### 2. agent-workspace-interview (Config Generator) -- v4.1
 
 Runs a 6-question interview (includes verification tools and safety-critical info) and generates MAST-hardened workspace configuration files for any agent platform. All 14 failure modes defended.
 
@@ -177,7 +177,8 @@ mast-skills/
   tests/
     test_harness.py          # Failure injection test harness
     mast_judge.py            # LLM-as-judge evaluator
-    validate_judge.py        # Judge validation (HF + dynamic consistency)
+    validate_judge.py            # Judge validation (HF + dynamic consistency)
+    mcp_dynamic_test.py           # MCP+baseline+MAST 3-way comparison
     chatdev_3way_test.py     # ChatDev 3-way comparison (baseline/full/lite)
     chatdev_dynamic_test.py  # ChatDev baseline vs MAST dynamic test
     chatdev_reproduction.py  # ChatDev full pipeline (slow)
@@ -196,7 +197,7 @@ Run the failure injection test harness against any model:
 
 ```bash
 # Local gateway (Ollama-compatible)
-cd /tmp/mast-skills && python3 -u tests/test_harness.py \
+python3 -u tests/test_harness.py \
   --config-dir tests/test-configs/mast-hardened \
   --provider gateway --model gemma4:31b-cloud
 

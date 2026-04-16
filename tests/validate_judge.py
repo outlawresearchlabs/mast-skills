@@ -27,13 +27,13 @@ def validate_dynamic_judge():
     print("VALIDATION MODE 1: Dynamic Test Judge Consistency")
     print("=" * 70)
     
-    sys.path.insert(0, "/tmp/mast-skills/tests")
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from test_harness import TEST_CASES, extract_model_response, run_test_with_gateway
     
     client = OpenAI(base_url=GATEWAY_URL, api_key="unused")
     
     # Load the MAST-hardened config
-    config_dir = "/tmp/mast-skills/tests/test-configs/mast-hardened"
+    config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-configs", "mast-hardened")
     system_prompt = ""
     for fname in ["SOUL.md", "RULES.md"]:
         fpath = os.path.join(config_dir, fname)

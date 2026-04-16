@@ -11,8 +11,8 @@ import time
 import re
 from pathlib import Path
 
-CHATDEV_DIR = "/tmp/ChatDev"
-OUTPUT_DIR = "/tmp/mast-skills/tests/results/chatdev"
+CHATDEV_DIR = os.environ.get("CHATDEV_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatDev"))
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results", "chatdev")
 BASELINE_YAML = "yaml_instance/ChatDev_v1_gw.yaml"
 MAST_YAML = "yaml_instance/ChatDev_v1_mast_gw.yaml"
 

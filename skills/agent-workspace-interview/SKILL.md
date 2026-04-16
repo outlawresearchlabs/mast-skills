@@ -437,7 +437,7 @@ Which model would you like to test against?
 
 If they choose, run:
 ```bash
-cd /tmp/mast-skills && python3 -u tests/test_harness.py \
+cd mast-skills && python3 -u tests/test_harness.py \
   --config-dir [generated-config-dir] \
   --provider [gateway|openai|anthropic] \
   --model [model-name] \

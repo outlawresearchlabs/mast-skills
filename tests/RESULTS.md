@@ -354,7 +354,7 @@ Our dynamic test judge produces consistent results across re-runs. The 14/14 v4 
 
 ## ChatDev Full Pipeline (Pending)
 
-- **Setup**: /tmp/ChatDev (cloned, dependencies installed, .env configured)
+- **Setup**: ChatDev (cloned, dependencies installed, .env configured)
 - **Configs**: baseline (ChatDev_v1_gw.yaml), MAST-Full (ChatDev_v1_mast_gw.yaml), MAST-Lite (ChatDev_v1_mast_lite.yaml)
 - **Status**: Single tasks take 10+ minutes per run. Dynamic test of Programmer role (above) is more efficient for validating defense effectiveness.
 - **Scripts**: tests/chatdev_reproduction.py (full pipeline), tests/chatdev_3way_test.py (dynamic), tests/create_chatdev_lite.py (lite YAML generator)

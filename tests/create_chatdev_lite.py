@@ -4,10 +4,11 @@ Create a lightweight MAST-hardened ChatDev YAML.
 Injects compressed MAST rules (4 bullet points) into each agent role.
 Avoids the prompt bloat that caused regressions in the full version.
 """
+import os
 import re
 
-BASELINE = "/tmp/ChatDev/yaml_instance/ChatDev_v1_gw.yaml"
-OUTPUT = "/tmp/ChatDev/yaml_instance/ChatDev_v1_mast_lite.yaml"
+BASELINE = os.environ.get("CHATDEV_YAML", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatDev", "yaml_instance", "ChatDev_v1_gw.yaml"))
+OUTPUT = os.path.join(os.path.dirname(BASELINE), "ChatDev_v1_mast_lite.yaml")
 MODEL_NAME = "gemma4:31b-cloud"
 
 # Lightweight MAST rules - 4 compressed bullets that cover the key failure modes
@@ -65,4 +66,4 @@ print(f"Model name replacements: {agent_count}")
 import os
 print(f"Baseline size: {os.path.getsize(BASELINE)} bytes")
 print(f"MAST lite size: {os.path.getsize(OUTPUT)} bytes")
-print(f"Full MAST size: {os.path.getsize('/tmp/ChatDev/yaml_instance/ChatDev_v1_mast_gw.yaml')} bytes")
+print(f"Full MAST size: {os.path.getsize(os.path.join(os.path.dirname(BASELINE), 'ChatDev_v1_mast_gw.yaml'))} bytes")

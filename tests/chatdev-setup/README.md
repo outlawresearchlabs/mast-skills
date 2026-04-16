@@ -54,7 +54,7 @@ This setup embeds defenses against 7 key failure modes into ChatDev's agent role
 
 ```bash
 # 1. Full setup (clone + install + generate)
-cd /tmp/mast-chatdev-setup/ChatDev
+cd ChatDev
 ./mast_hardened/setup.sh
 
 # 2a. Run benchmarks with LOCAL GATEWAY (free, no API key needed)

@@ -12,8 +12,11 @@ import sys
 import re
 from openai import OpenAI
 
-sys.path.insert(0, "/tmp/mast-skills/tests")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from test_harness import TEST_CASES, extract_model_response
+
+CHATDEV_DIR = os.environ.get("CHATDEV_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatDev"))
+YAML_DIR = os.path.join(CHATDEV_DIR, "yaml_instance")
 
 GATEWAY_URL = "http://127.0.0.1:11434/v1"
 MODEL = "gemma4:31b-cloud"
@@ -69,8 +72,8 @@ def run_chatdev_comparison():
     print("=" * 70)
     
     # Extract prompts from both YAMLs
-    baseline_path = "/tmp/ChatDev/yaml_instance/ChatDev_v1_gw.yaml"
-    mast_path = "/tmp/ChatDev/yaml_instance/ChatDev_v1_mast_gw.yaml"
+    baseline_path = os.path.join(YAML_DIR, "ChatDev_v1_gw.yaml")
+    mast_path = os.path.join(YAML_DIR, "ChatDev_v1_mast_gw.yaml")
     
     print("\nExtracting ChatDev agent prompts...")
     _, baseline_roles = extract_chatdev_prompts(baseline_path)

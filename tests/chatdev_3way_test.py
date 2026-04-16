@@ -8,7 +8,7 @@ import sys
 import re
 from openai import OpenAI
 
-sys.path.insert(0, "/tmp/mast-skills/tests")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from test_harness import TEST_CASES
 
 GATEWAY_URL = "http://127.0.0.1:11434/v1"
@@ -68,10 +68,14 @@ def main():
     print("CHATDEV DYNAMIC TEST: Baseline vs MAST-Full vs MAST-Lite")
     print("=" * 70)
     
+    # ChatDev paths -- clone ChatDev and set CHATDEV_DIR env var
+    chatdev_dir = os.environ.get("CHATDEV_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatDev"))
+    yaml_dir = os.path.join(chatdev_dir, "yaml_instance")
+    
     configs = {
-        "baseline": "/tmp/ChatDev/yaml_instance/ChatDev_v1_gw.yaml",
-        "mast_full": "/tmp/ChatDev/yaml_instance/ChatDev_v1_mast_gw.yaml",
-        "mast_lite": "/tmp/ChatDev/yaml_instance/ChatDev_v1_mast_lite.yaml",
+        "baseline": os.path.join(yaml_dir, "ChatDev_v1_gw.yaml"),
+        "mast_full": os.path.join(yaml_dir, "ChatDev_v1_mast_gw.yaml"),
+        "mast_lite": os.path.join(yaml_dir, "ChatDev_v1_mast_lite.yaml"),
     }
     
     prompts = {}
@@ -126,7 +130,7 @@ def main():
     print(f"\n{'Total':<8} {b_total:>10}/14 {f_total:>10}/14 {l_total:>10}/14")
     
     # Save
-    output_path = "/tmp/mast-skills/tests/results/chatdev_3way_comparison.json"
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results", "chatdev_3way_comparison.json")
     with open(output_path, 'w') as f:
         json.dump({
             "model": MODEL,

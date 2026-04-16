@@ -71,7 +71,7 @@ from datetime import datetime
 
 from human_eval.data import read_problems
 
-results_dir = os.environ.get("MAST_RESULTS_DIR", "/tmp/results/baseline")
+results_dir = os.environ.get("MAST_RESULTS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "baseline"))
 yaml_config = os.environ.get("MAST_YAML_CONFIG", "yaml_instance/ChatDev_v1.yaml")
 model = os.environ.get("MAST_MODEL", "gpt-4o")
 subset = int(os.environ.get("MAST_SUBSET", "0"))
