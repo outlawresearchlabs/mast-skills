@@ -266,16 +266,20 @@ def extract_code_from_warehouse(task_name: str, entry_point: str = "") -> str:
             for preferred in ['solution.py']:
                 preferred_path = os.path.join(code_ws, preferred)
                 if os.path.exists(preferred_path):
-                    with open(preferred_path) as fh:
+                    with open(preferred_path, errors='replace') as fh:
                         raw_code = fh.read()
+                    # Fix common ChatDev output issues
+                    raw_code = raw_code.lstrip('\ufeff')  # Strip UTF-8 BOM
+                    raw_code = raw_code.replace('\\"', '"')   # Unescape quotes
                     break
             
             if not raw_code:
                 # Find the file containing the target function
                 for f in non_venv_files:
-                    with open(f) as fh:
+                    with open(f, errors='replace') as fh:
                         content = fh.read()
-                    content = content.lstrip('\ufeff')
+                    content = content.lstrip('\ufeff')  # Strip UTF-8 BOM
+                    content = content.replace('\\"', '"')   # Unescape quotes
                     if entry_point and f'def {entry_point}' in content:
                         raw_code = content
                         break
@@ -283,8 +287,9 @@ def extract_code_from_warehouse(task_name: str, entry_point: str = "") -> str:
                 if not raw_code:
                     # Last resort: largest .py file with function definitions
                     for f in non_venv_files:
-                        with open(f) as fh:
+                        with open(f, errors='replace') as fh:
                             content = fh.read()
+                        content = content.lstrip('\ufeff').replace('\\"', '"')
                         if re.search(r'^def\s+\w+', content, re.MULTILINE):
                             raw_code = content
                             break
