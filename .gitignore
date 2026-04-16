@@ -31,4 +31,6 @@ env/
 
 # Secrets (never commit)
 *_api_key*
-*secret*
+
+# Test results (large JSON files, regenerated each run)
+tests/results/
