@@ -223,7 +223,7 @@ MAST fixes 3 of 4 baseline failures (FM-2.2, FM-3.2, FM-3.3). The one remaining 
 | FM-1.2 Disobey role specification | 1.5% | Baseline FAIL -> Hardened PASS (gpt-4o) |
 | FM-2.4 Information withholding | 0.85% | Baseline FAIL -> Hardened PASS (gemma4) |
 
-**Net v4 impact: +29.1% prevalence on gemma4 (70.9% -> 100%), +18.8% on gpt-4o (81.2% -> 100%)**
+**Net v4 impact: +29.1% prevalence on gemma4 (70.9% -> 100% trigger pass rate), +18.8% on gpt-4o (81.2% -> 100% trigger pass rate)**
 
 ---
 
@@ -322,7 +322,7 @@ Ran 14-mode dynamic failure injection test against each system prompt.
 | FM-3.3 | PASS | PASS | Yes |
 | FM-2.4 | PASS | PASS | Yes |
 
-**Judge consistency: 5/5 (100%)**
+**Judge consistency: 5/5 (100%)** -- tests determinism (same input, same output), not accuracy
 
 Our dynamic test judge produces consistent results across re-runs. The 14/14 v4 results are reproducible.
 
