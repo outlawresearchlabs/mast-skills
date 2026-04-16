@@ -4,15 +4,17 @@ Hermes Agent skills for preventing all 14 failure modes identified in the MAST (
 
 ## Validated Results
 
-**14/14 MAST failure modes defeated. 100% prevalence defended. Tested across 3 model families.**
+**14/14 MAST failure modes defeated on gemma4 and gpt-4o. Claude baseline is already strong (13/14).**
 
 | Model | Baseline (no MAST) | MAST-Hardened v4 | Improvement |
 |---|---|---|---|
 | gemma4:31b-cloud | 10/14 (70.9%) | **14/14 (100%)** | **+29.1%** |
 | gpt-4o | 11/14 (81.2%) | **14/14 (100%)** | **+18.8%** |
-| claude-sonnet-4 | 10/14 (71.4%) | **13/14 (97.2%)** | **+21.5%** |
+| claude-sonnet-4 | 13/14 (99.15%) | 12/14 (85.8%) | **-1 test** (regression) |
 
-Claude's one failure (FM-1.4: loss of conversation history) is a context window limit that prompt engineering cannot fully solve -- the mast-enforce MCP server addresses this with `check_completion()`.
+**Regression on Claude**: The longer MAST prompt (7,748 chars vs 1,266) triggers FM-1.3 (step repetition) and FM-1.4 (context loss) that the concise baseline avoids. MAST fixes FM-2.4 (info withholding) but causes 2 regressions. For models with strong built-in safety, a shortened MAST config is recommended.
+
+The mast-enforce MCP server addresses the 3 remaining gaps (FM-1.5, FM-3.2, FM-3.3) that ChatDev shows prompts alone can't solve.
 
 **ChatDev validation**: MAST-full Programmer role scores 11/14 vs 8/14 baseline (+3 modes) on the same 14-mode dynamic test. Full protocol blocks with structured tags are necessary -- compressed "lite" rules (7/14) underperform even baseline.
 

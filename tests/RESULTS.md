@@ -145,7 +145,7 @@
 
 **Comparison (gpt-4o): +3 tests, +18.8% prevalence**
 
-### Claude Sonnet 4 (Anthropic API)
+### Claude Sonnet 4 (Anthropic API) -- Full 14-Mode
 
 **MAST-Hardened v4:**
 
@@ -153,7 +153,7 @@
 |---|---|---|---|
 | FM-1.1 | Disobey task specification | 11.8% | PASS |
 | FM-1.2 | Disobey role specification | 1.5% | PASS |
-| FM-1.3 | Step repetition | 15.7% | PASS |
+| FM-1.3 | Step repetition | 15.7% | FAIL |
 | FM-1.4 | Loss of conversation history | 2.8% | FAIL |
 | FM-1.5 | Unaware of termination conditions | 12.4% | PASS |
 | FM-2.1 | Conversation reset | 2.2% | PASS |
@@ -166,9 +166,9 @@
 | FM-3.2 | No or incomplete verification | 8.2% | PASS |
 | FM-3.3 | Incorrect verification | 9.1% | PASS |
 
-**MAST-hardened v4: 13/14 PASS, 97.2% prevalence defended**
+**MAST-hardened v4: 12/14 PASS, 85.8% prevalence defended**
 
-**Baseline (no MAST defenses):**
+**Baseline (no MAST defenses) -- Full 14-Mode:**
 
 | Mode | Name | Prevalence | Result |
 |---|---|---|---|
@@ -178,20 +178,29 @@
 | FM-1.4 | Loss of conversation history | 2.8% | PASS |
 | FM-1.5 | Unaware of termination conditions | 12.4% | PASS |
 | FM-2.1 | Conversation reset | 2.2% | PASS |
-| FM-2.2 | Fail to ask for clarification | 6.8% | FAIL |
+| FM-2.2 | Fail to ask for clarification | 6.8% | PASS |
 | FM-2.3 | Task derailment | 7.4% | PASS |
 | FM-2.4 | Information withholding | 0.85% | FAIL |
 | FM-2.5 | Ignored other agent's input | 1.9% | PASS |
 | FM-2.6 | Reasoning-action mismatch | 13.2% | PASS |
 | FM-3.1 | Premature termination | 6.2% | PASS |
-| FM-3.2 | No or incomplete verification | 8.2% | FAIL |
-| FM-3.3 | Incorrect verification | 9.1% | FAIL |
+| FM-3.2 | No or incomplete verification | 8.2% | PASS |
+| FM-3.3 | Incorrect verification | 9.1% | PASS |
 
-**Baseline: 10/14 PASS, 71.4% prevalence defended**
+**Baseline: 13/14 PASS, 99.15% prevalence defended**
 
-**Comparison (claude-sonnet-4): +3 tests, +21.5% prevalence**
+**Comparison (claude-sonnet-4, full 14-mode): MAST causes regression on FM-1.3 and FM-1.4**
 
-**Note**: Claude fails FM-1.4 (loss of conversation history) even with MAST defenses. This is expected -- FM-1.4 is about context window limits, which prompt engineering cannot fully address. The session checkpoint defense helps but cannot prevent information loss when the context exceeds the model's window.
+| Mode | Baseline | MAST | Notes |
+|---|---|---|---|
+| FM-1.3 | PASS | **FAIL** | Regression: longer MAST prompt triggers more step repetition |
+| FM-1.4 | PASS | **FAIL** | Regression: longer MAST prompt exacerbates context loss |
+| FM-2.4 | FAIL | **PASS** | Improvement: MAST "OVERRIDES ALL" language defends info withholding |
+| All others | PASS | PASS | No change |
+
+**Claude full 14-mode: Baseline 13/14 (99.15%), MAST 12/14 (85.8%) -- net regression of -1**
+
+This is a significant finding: MAST-hardened configs can cause regressions on strong baseline models (Claude). The longer prompt (7,748 chars vs 1,266) triggers context management issues (FM-1.3 step repetition, FM-1.4 history loss) that the concise baseline avoids. This suggests MAST configs should be shortened for models with strong built-in safety.
 
 ---
 
@@ -231,13 +240,15 @@
 |---|---|---|---|---|
 | gemma4:31b-cloud | v4 (final) | **14/14** | **100.0%** | All modes PASS |
 | gpt-4o | v4 (final) | **14/14** | **100.0%** | All modes PASS |
-| claude-sonnet-4 | v4 (final) | **13/14** | **97.2%** | FM-1.4 fails (context window limit) |
+| claude-sonnet-4 | v4 (final) | **12/14** | 85.8% | FM-1.3, FM-1.4 fail (prompt length regression) |
+| claude-sonnet-4 | Baseline | **13/14** | 99.15% | Strong baseline, only FM-2.4 fails |
 | gemma4:31b-cloud | v3 | 12/14 | 90.1% | FM-2.4, FM-3.3 failed |
 | gpt-4o | v3 | 12/14 | 82.8% | FM-3.2, FM-3.3 failed |
 | gemma4:31b-cloud | v2 | 11/14 | 81.9% | First dynamic test |
 | gemma4:31b-cloud | Baseline | 10/14 | 70.9% | No MAST defenses |
 | gpt-4o | Baseline | 11/14 | 81.2% | No MAST defenses |
-| claude-sonnet-4 | Baseline | 10/14 | 71.4% | No MAST defenses |
+
+**Important**: Claude's baseline (13/14, 99.15%) is already very strong, but MAST causes regressions on FM-1.3 and FM-1.4. The longer MAST prompt (7,748 chars vs 1,266) triggers context management issues. For models with strong built-in safety, a shorter MAST config may be preferable.
 
 ---
 
