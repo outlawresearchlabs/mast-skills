@@ -275,6 +275,7 @@ def extract_code_from_warehouse(task_name: str, entry_point: str = "") -> str:
                 for f in non_venv_files:
                     with open(f) as fh:
                         content = fh.read()
+                    content = content.lstrip('\ufeff')
                     if entry_point and f'def {entry_point}' in content:
                         raw_code = content
                         break
