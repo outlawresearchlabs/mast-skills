@@ -28,11 +28,26 @@ Each failure mode tested via failure injection: a deliberate trigger prompt desi
 
 **Dynamic testing methodology**: Our test uses 14 deliberately designed trigger prompts, one per failure mode. An LLM judge evaluates whether the agent's response defends against each trigger. This is a necessary-but-not-sufficient validation: passing proves the defense works when the failure mode is triggered, but doesn't prove real-world failure rates drop proportionally.
 
-**HuggingFace validation**: Trace-level agreement with o1 annotations achieved 0.275 Jaccard (moderate) and 0.07 recall (low) on 8 traces. The high false-positive rate means our judge over-flags failures; the low recall means it misses subtle ones. This validation confirms our test harness is directionally correct but not precisely calibrated.
+**Metric incomparability**: Our results measure *trigger pass rate* (does the model defend against a deliberately crafted failure trigger?). The paper's intervention results measure *task completion rate* (does the multi-agent system actually complete benchmark tasks?). These are fundamentally different metrics. Our +29.1% (gemma4 trigger pass) cannot be compared to the paper's +15.6% (ChatDev ProgramDev task completion). Trigger pass rate is a component test; task completion rate is a system test.
 
-**MCP dynamic test**: Single-prompt simulation of MCP tool outputs. MAST+MCP = MAST on all tested modes. Real MCP value requires agent framework integration where the system blocks the agent from proceeding, not just provides additional text.
+**Prompt-only approach has known limits (the paper says so)**: The paper's Section 5 identifies 3 insights about what interventions actually work:
+1. *Well-designed MAS outperform with the same model* -- but our test only validates single-agent responses, not whole-system design.
+2. *FC2 (Inter-Agent Misalignment) failures "demand deeper social reasoning" that context/communication protocols alone are often insufficient for* -- our FC2 defenses are prompt text ("ASK FOR CLARIFICATION"). The paper explicitly says this type of approach is limited for FC2.
+3. *Verification failures persist "despite being prompted to perform thorough verification"* -- our FC3 defenses are prompt text ("VERIFY BEFORE DELIVERY"). The paper shows agents still do superficial checks even with explicit verification instructions.
+
+The paper's most effective intervention was not prompt engineering. On ChatDev ProgramDev, prompt improvements yielded +9.4% task completion, while topology change (cyclic graph with CTO sign-off gate) yielded +15.6%. Our skills and test harness address only the prompt layer. The mast-enforce MCP server adds structural enforcement for 3 modes (FM-1.5, FM-3.2, FM-3.3), but it has not been validated in an actual multi-agent framework.
+
+**No whole-system validation**: Our test evaluates single-agent responses to failure triggers, not whether multi-agent systems with MAST defenses actually complete tasks more successfully. This is the most important unvalidated assumption.
+
+**No statistical significance**: Results are single trials per mode per model. The paper uses 6 repetitions and Wilcoxon tests with p-values.
+
+**HuggingFace validation**: Trace-level agreement with o1 annotations achieved 0.275 Jaccard (moderate) and 0.07 recall (low) on 8 traces. The paper's human annotators achieved kappa=0.88 -- our judge is far below this standard. This validation confirms our test harness is directionally correct but not precisely calibrated.
+
+**MCP dynamic test**: Single-prompt simulation of MCP tool outputs. MAST+MCP = MAST on all tested modes across gemma4 and Claude. This confirms no regression but cannot demonstrate real value -- that requires agent framework integration where the system structurally blocks premature completion or unverified delivery.
 
 **ChatDev validation**: Tests the Programmer role's system prompt only, not the full multi-agent pipeline. Full ChatDev execution (10+ min per task) is pending.
+
+**System-specific failure profiles**: The paper shows dramatically different failure distributions across MAS frameworks (AppWorld dominant=FM-3.1 at 38%, OpenManus=FM-1.3, HyperAgent=FM-1.3+FM-3.3). Our 14-mode test treats all systems equally. Defenses should ideally be prioritized by the target system's specific failure profile.
 
 ## What Changes in Agent Behavior
 

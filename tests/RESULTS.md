@@ -58,6 +58,8 @@
 **Harness**: tests/test_harness.py
 **Options**: --provider gateway (local Ollama), --provider openai, --provider anthropic
 
+**Critical context**: The paper's Section 5 identifies that (1) prompt-only interventions yield less improvement than topology changes (+9.4% vs +15.6% on ChatDev ProgramDev), (2) FC2 failures "demand deeper social reasoning" beyond communication protocols, and (3) verification failures persist "despite being prompted to perform thorough verification." Our results measure trigger pass rate (component test), not task completion rate (system test). These metrics are not comparable to the paper's benchmark results.
+
 ### Gemma 4 31B (gemma4:31b-cloud)
 
 **MAST-Hardened v4 (final):**
