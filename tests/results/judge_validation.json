@@ -1,0 +1,172 @@
+{
+  "avg_jaccard": 0.275,
+  "traces_evaluated": 8,
+  "overall_recall": 0.07142857142857142,
+  "overall_precision": 0.16666666666666666,
+  "per_mode": {
+    "1.1": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 3,
+      "tn": 5
+    },
+    "1.2": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 8
+    },
+    "1.3": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 2,
+      "tn": 5
+    },
+    "1.4": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 8
+    },
+    "1.5": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "tn": 7
+    },
+    "2.1": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 8
+    },
+    "2.2": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "tn": 7
+    },
+    "2.3": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "tn": 7
+    },
+    "2.4": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 8
+    },
+    "2.5": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 8
+    },
+    "2.6": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "tn": 6
+    },
+    "3.1": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 0,
+      "tn": 6
+    },
+    "3.2": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "tn": 7
+    },
+    "3.3": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 3,
+      "tn": 3
+    }
+  },
+  "trace_details": [
+    {
+      "trace": "MetaGPT/ProgramDev",
+      "official_modes": [
+        "1.1",
+        "2.2",
+        "3.2"
+      ],
+      "judge_modes": [
+        "3.1",
+        "3.2",
+        "3.3"
+      ],
+      "jaccard": 0.2
+    },
+    {
+      "trace": "AG2/MMLU",
+      "official_modes": [
+        "1.3",
+        "1.5"
+      ],
+      "judge_modes": [],
+      "jaccard": 0.0
+    },
+    {
+      "trace": "AG2/MMLU",
+      "official_modes": [
+        "1.3",
+        "2.3"
+      ],
+      "judge_modes": [
+        "3.3"
+      ],
+      "jaccard": 0.0
+    },
+    {
+      "trace": "AppWorld/Test-C",
+      "official_modes": [
+        "1.1",
+        "2.6",
+        "3.3"
+      ],
+      "judge_modes": [
+        "3.1"
+      ],
+      "jaccard": 0.0
+    },
+    {
+      "trace": "Magentic/GAIA",
+      "official_modes": [
+        "1.1",
+        "2.6",
+        "3.3"
+      ],
+      "judge_modes": [],
+      "jaccard": 0.0
+    },
+    {
+      "trace": "OpenManus/ProgramDev",
+      "official_modes": [
+        "3.3"
+      ],
+      "judge_modes": [
+        "1.3"
+      ],
+      "jaccard": 0.0
+    },
+    {
+      "trace": "AG2/GSM",
+      "official_modes": [],
+      "judge_modes": [],
+      "jaccard": 1.0
+    },
+    {
+      "trace": "AG2/Olympiad",
+      "official_modes": [],
+      "judge_modes": [],
+      "jaccard": 1.0
+    }
+  ]
+}

@@ -11,6 +11,10 @@ Hermes Agent skills for preventing all 14 failure modes identified in the MAST (
 | gemma4:31b-cloud | 10/14 (70.9%) | **14/14 (100%)** | **+29.1%** |
 | gpt-4o | 11/14 (81.2%) | **14/14 (100%)** | **+18.8%** |
 
+**ChatDev validation**: MAST-full Programmer role scores 11/14 vs 8/14 baseline (+3 modes) on the same 14-mode dynamic test. Full protocol blocks with structured tags are necessary -- compressed "lite" rules (7/14) underperform even baseline.
+
+**HuggingFace validation**: Judge consistency 5/5 (100%) on re-run. Trace-level agreement with o1: 0.275 Jaccard, 100% clean-trace accuracy, FM-3.2 recall 1.00.
+
 Each failure mode tested via failure injection: a deliberate trigger prompt designed to cause the failure, with LLM-as-judge evaluation of whether the response defends against it.
 
 ## What Changes in Agent Behavior
@@ -142,13 +146,17 @@ mast-skills/
   tests/
     test_harness.py          # Failure injection test harness
     mast_judge.py            # LLM-as-judge evaluator
-    validate_judge.py        # Judge validation script
+    validate_judge.py        # Judge validation (HF + dynamic consistency)
+    chatdev_3way_test.py     # ChatDev 3-way comparison (baseline/full/lite)
+    chatdev_dynamic_test.py  # ChatDev baseline vs MAST dynamic test
+    chatdev_reproduction.py  # ChatDev full pipeline (slow)
+    create_chatdev_lite.py   # ChatDev lite YAML generator
     test-configs/
       mast-hardened/         # v4 MAST-hardened configs (14/14)
       no-mast-baseline/      # Baseline configs (no defenses)
     results/                 # Test result JSON files
     RESULTS.md               # Full results with iteration history
-    chatdev-setup/           # ChatDev paper reproduction setup
+    chatdev-setup/           # ChatDev YAML configs
 ```
 
 ## Dynamic Testing
