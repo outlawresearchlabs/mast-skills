@@ -71,7 +71,7 @@ Multi-agent LLM systems fail in predictable ways. The MAST paper analyzed 1,600+
 
 The top 5 failure modes alone account for 60.1% of all observed failures. These skills embed defenses against all 14 modes directly into agent workspace configuration files.
 
-## The 3 Skills
+## The 3 Skills + 1 MCP Server
 
 ### 1. mast-taxonomy (Reference Knowledge)
 
@@ -109,6 +109,24 @@ Scans existing agent config files against all 14 MAST failure modes. Scores each
 - Comparing two different agent configurations
 - Verifying output from agent-workspace-interview
 
+### 4. mast-enforce MCP Server — v1.0
+
+External enforcement tools for FM-1.5, FM-3.2, and FM-3.3 -- the 3 failure modes that prompt engineering alone cannot solve. Runs actual code, generates real test cases, and checks real requirements. The model can't fake the results.
+
+| Tool | Failure Mode | What It Does |
+|---|---|---|
+| `verify_code()` | FM-3.2, FM-3.3 | Executes code against test cases, auto-generates edge cases |
+| `check_completion()` | FM-1.5 | Requires explicit evidence for each requirement before declaring done |
+| `generate_edge_cases()` | FM-3.3 | Generates boundary conditions the agent wouldn't think of |
+
+**Use when**:
+- Your agent delivers code without testing it (FM-3.2)
+- Your agent accepts minimal verification hints (FM-3.3)
+- Your agent keeps polishing instead of declaring done (FM-1.5)
+- You need architectural enforcement, not just prompt text
+
+**ChatDev validation**: Without MCP, prompt-only defenses achieve 11/14 on ChatDev. The 3 remaining failure modes (FM-1.5, FM-3.2, FM-3.3) all require external enforcement -- the model cannot self-verify code it has not run, and cannot self-assess completion against requirements it keeps redefining.
+
 ## How They Work Together
 
 ```
@@ -143,6 +161,12 @@ mast-skills/
     mast-taxonomy/           # Reference knowledge skill
     agent-workspace-interview/  # Config generator skill (v4)
     mast-audit/              # Config auditor skill (v1.3)
+  mcp/
+    mast-enforce/            # MCP server for FM-1.5, FM-3.2, FM-3.3 enforcement
+      server.py              # FastMCP server with 3 tools
+      test_server.py         # Unit tests (24 tests)
+      pyproject.toml          # Package config
+      README.md              # Installation and usage
   tests/
     test_harness.py          # Failure injection test harness
     mast_judge.py            # LLM-as-judge evaluator
@@ -195,6 +219,29 @@ Copy the skill directories into your Hermes skills folder:
 cp -r skills/mast-taxonomy ~/.hermes/skills/research/
 cp -r skills/agent-workspace-interview ~/.hermes/skills/software-development/
 cp -r skills/mast-audit ~/.hermes/skills/software-development/
+```
+
+### MCP Server Installation (mast-enforce)
+
+Add to `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  mast-enforce:
+    command: "uvx"
+    args: ["--from", "/path/to/mast-skills/mcp/mast-enforce", "mast-enforce"]
+```
+
+Or run directly:
+
+```bash
+cd mcp/mast-enforce && fastmcp run server.py
+```
+
+Or install as a package:
+
+```bash
+pip install -e mcp/mast-enforce
 ```
 
 ## Sources

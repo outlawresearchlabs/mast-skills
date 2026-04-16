@@ -1,0 +1,17 @@
+[project]
+name = "mast-enforce"
+version = "1.0.0"
+description = "MAST Enforce MCP Server — External enforcement tools for multi-agent LLM failure modes FM-1.5, FM-3.2, and FM-3.3"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "fastmcp>=2.0",
+]
+
+[project.scripts]
+mast-enforce = "server:mcp.run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
