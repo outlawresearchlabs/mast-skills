@@ -355,12 +355,61 @@ The dynamic test (our 14/14 result) and trace-level analysis serve different pur
 
 ---
 
-## ChatDev Full Pipeline (Pending)
+## ChatDev Whole-System Validation (HumanEval Benchmark)
 
-- **Setup**: ChatDev (cloned, dependencies installed, .env configured)
-- **Configs**: baseline (ChatDev_v1_gw.yaml), MAST-Full (ChatDev_v1_mast_gw.yaml), MAST-Lite (ChatDev_v1_mast_lite.yaml)
-- **Status**: Single tasks take 10+ minutes per run. Dynamic test of Programmer role (above) is more efficient for validating defense effectiveness.
-- **Scripts**: tests/chatdev_reproduction.py (full pipeline), tests/chatdev_3way_test.py (dynamic), tests/create_chatdev_lite.py (lite YAML generator)
+**Date**: 2026-04-16
+**Method**: HumanEval benchmark through ChatDev multi-agent pipeline, measuring pass@1 (task completion rate)
+**Configs**: baseline (ChatDev_v1_gw.yaml), MAST-hardened (ChatDev_v1_mast_gw.yaml)
+**Model**: gemma4:31b-cloud via local Ollama-compatible gateway
+**Script**: tests/chatdev_whole_system_v2.py
+**Detailed results**: tests/results/whole_system/CHATDEV_RESULTS.md
+
+### Baseline Results (6 HumanEval problems)
+
+| Problem | Entry Point | Result | Failure Mode |
+|---------|-------------|--------|--------------|
+| HumanEval/0 | has_close_elements | PASS | - |
+| HumanEval/1 | separate_paren_groups | FAIL | FM-1.1: wrong function |
+| HumanEval/2 | truncate_number | FAIL | FM-1.1: wrong semantics |
+| HumanEval/4 | mean_absolute_deviation | PASS | - |
+| HumanEval/10 | make_palindrome | PASS | - |
+| HumanEval/17 | parse_music | FAIL | FM-1.1: wrong format |
+
+**Baseline pass@1: 3/6 (50%)**
+
+### MAST-Hardened Results (4 HumanEval problems, experiment incomplete)
+
+| Problem | Entry Point | Result | Failure Mode |
+|---------|-------------|--------|--------------|
+| HumanEval/0 | has_close_elements | PASS | - |
+| HumanEval/2 | truncate_number | **FAIL** | FM-1.1: same error as baseline |
+| HumanEval/4 | mean_absolute_deviation | PASS | - |
+| HumanEval/10 | make_palindrome | PASS | - |
+
+**MAST pass@1: 3/4 (75%)**
+
+### Head-to-Head (shared problems)
+
+| Problem | Baseline | MAST | Delta |
+|---------|----------|------|-------|
+| HumanEval/0 | PASS | PASS | SAME |
+| HumanEval/2 | FAIL | FAIL | SAME |
+| HumanEval/4 | PASS | PASS | SAME |
+| HumanEval/10 | PASS | PASS | SAME |
+
+**On shared problems: MAST = Baseline = 3/4. No measurable improvement.**
+
+### Critical Finding
+
+**FM-1.1 "Specification Adherence Protocol" is INEFFECTIVE in whole-system testing.**
+
+Despite explicit instruction to "NEVER implement based on the function name alone," HumanEval/2 failed identically under MAST: model added `d: int` parameter, implemented "truncate to N decimals" instead of "extract decimal part."
+
+All 3 baseline failures (100%) are FM-1.1. MAST's FM-1.1 defense did not prevent any of them. This directly validates the paper's Section 5 Finding 3: "verification persists despite being prompted to perform thorough verification."
+
+**Paper comparison**: Prompt-only ChatDev improvement = +0.7pp (89.6% → 90.3%) with GPT-3.5. Our experiment shows 0pp improvement for FM-1.1 failures with gemma4.
+
+**Implication**: Structural enforcement (MCP tools) is needed for FM-1.1, validating our MCP server approach for FM-1.5, FM-3.2, and FM-3.3
 
 ---
 
