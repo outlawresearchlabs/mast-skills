@@ -130,6 +130,8 @@ External enforcement tools for FM-1.5, FM-3.2, and FM-3.3 -- the 3 failure modes
 
 **ChatDev validation**: Without MCP, prompt-only defenses achieve 11/14 on ChatDev. The 3 remaining failure modes (FM-1.5, FM-3.2, FM-3.3) all require external enforcement -- the model cannot self-verify code it has not run, and cannot self-assess completion against requirements it keeps redefining.
 
+**MCP dynamic test**: Single-prompt test simulating MCP tool outputs. MAST+MCP matches MAST on all modes across gemma4 and Claude. This confirms MCP adds no regression. The real MCP value requires agent framework integration (the system blocks the agent, not just reads tool output).
+
 ## How They Work Together
 
 ```

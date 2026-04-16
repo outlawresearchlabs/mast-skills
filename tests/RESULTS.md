@@ -347,3 +347,51 @@ Our dynamic test judge produces consistent results across re-runs. The 14/14 v4 
 - **Configs**: baseline (ChatDev_v1_gw.yaml), MAST-Full (ChatDev_v1_mast_gw.yaml), MAST-Lite (ChatDev_v1_mast_lite.yaml)
 - **Status**: Single tasks take 10+ minutes per run. Dynamic test of Programmer role (above) is more efficient for validating defense effectiveness.
 - **Scripts**: tests/chatdev_reproduction.py (full pipeline), tests/chatdev_3way_test.py (dynamic), tests/create_chatdev_lite.py (lite YAML generator)
+
+---
+
+## MCP Dynamic Test (v1.0)
+
+**Date**: 2026-04-16
+**Method**: Single-prompt dynamic test comparing baseline, MAST-hardened (prompt-only), and MAST+MCP (prompt + simulated tool outputs) configurations
+**Purpose**: Test whether architectural enforcement (MCP tool outputs) closes the 3 gaps that prompt-only defenses leave in ChatDev
+
+**Important caveat**: This is a *simulated* MCP test. Real MCP enforcement requires an actual agent framework calling the tools. The simulation injects tool call results into the prompt. This tests whether the *concept* of MCP enforcement adds value, not whether the actual MCP server code works (that's verified by unit tests).
+
+### gemma4:31b-cloud (gateway)
+
+| Mode | Baseline | MAST | MAST+MCP | Notes |
+|---|---|---|---|---|
+| FM-1.5 | FAIL | PASS | PASS | MCP tool call reinforces completion check |
+| FM-3.2 | PASS | PASS | PASS | Already defended by prompt |
+| FM-3.3 | FAIL | PASS | PASS | MCP edge cases reinforce verification depth |
+| FM-1.3 | PASS | PASS | PASS | Control: not MCP-targeted |
+| FM-2.6 | PASS | PASS | PASS | Control: not MCP-targeted |
+
+**gemma4 result**: MAST+MCP shows no regression vs MAST. MCP adds no improvement in single-prompt context because MAST prompt alone defends these modes. **The value of MCP is in real agent frameworks (ChatDev) where the agent can call tools and the system enforces results.**
+
+### Claude Sonnet 4 (Anthropic API)
+
+| Mode | Baseline | MAST | MAST+MCP | Notes |
+|---|---|---|---|---|
+| FM-1.5 | PASS | PASS | PASS | Claude baseline already defends this mode |
+| FM-3.2 | PASS | PASS | PASS | Already defended |
+| FM-3.3 | PASS | PASS | PASS | Already defended |
+| FM-1.3 | PASS | PASS | PASS | Control |
+| FM-2.6 | PASS | PASS | PASS | Control |
+
+**Claude result**: All modes pass in all configs. Claude's baseline is strong enough to handle FM-1.5, FM-3.2, FM-3.3 without any defense. MAST+MCP matches MAST.
+
+### Overall MCP Test Conclusion
+
+**Single-prompt dynamic test cannot demonstrate MCP value** because:
+1. MAST prompt text alone achieves 14/14 on gemma4 and gpt-4o
+2. MCP tool outputs injected into prompts are just more prompt text
+3. The architectural enforcement value comes when the *system* blocks the agent from proceeding, not when the agent *reads* tool output
+
+**The 3 ChatDev gaps (FM-1.5, FM-3.2, FM-3.3)** are:
+- FM-1.5: Agent doesn't know when to stop → `check_completion()` system blocks premature completion
+- FM-3.2: Agent skips verification → `verify_code()` system blocks unverified code delivery
+- FM-3.3: Agent accepts minimal verification → `generate_edge_cases()` system provides beyond-hint test cases
+
+These require the agent framework to **call the MCP tools as part of its workflow**, not just read their output. The mast-enforce MCP server is designed for real agent integration (see mcp/mast-enforce/README.md).
