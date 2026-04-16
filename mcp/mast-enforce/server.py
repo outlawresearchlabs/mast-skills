@@ -54,12 +54,14 @@ def verify_code(
     test_cases: Optional[str] = None,
     function_name: Optional[str] = None,
     auto_edge_cases: bool = True,
+    spec_signature: Optional[str] = None,
 ) -> dict:
     """Execute code and verify it passes tests. Solves FM-3.2 (no verification)
     and FM-3.3 (weak verification) by actually running the code.
 
     The model CANNOT claim "I verified" without this tool returning pass.
     If auto_edge_cases=True, generates additional edge cases beyond those provided.
+    If spec_signature is provided, checks that the implementation signature matches.
 
     Args:
         code: Source code to verify
@@ -67,10 +69,11 @@ def verify_code(
         test_cases: JSON array of {"input": ..., "expected": ...} test cases
         function_name: Name of the main function to test (auto-detected if omitted)
         auto_edge_cases: Whether to generate edge cases beyond those provided
+        spec_signature: Expected function signature from the specification (e.g. "def truncate_number(number: float) -> float")
     
     Returns:
         Dict with: passed (bool), total_tests, passed_tests, failed_tests, 
-                   failures (list), can_deliver (bool)
+                   failures (list), can_deliver (bool), signature_match (bool)
     """
     if language.lower() not in ("python", "javascript", "js"):
         return {
@@ -78,6 +81,60 @@ def verify_code(
             "can_deliver": False,
             "error": f"Unsupported language: {language}. Supported: python, javascript",
         }
+    
+    # ---- SPEC SIGNATURE CHECK (FM-1.1 defense) ----
+    # When the specification includes a function signature, verify the implementation
+    # matches it. This catches the #1 FM-1.1 failure mode: model implements based on
+    # function name rather than spec, producing wrong parameters.
+    signature_mismatch = None
+    spec_params = None
+    impl_params = None
+    if spec_signature and language.lower() == "python":
+        try:
+            spec_params = _parse_function_signature(spec_signature, "python")
+            # Auto-detect function name if not provided
+            if not function_name:
+                function_name = _detect_python_function(code) or "func"
+            impl_params = _get_impl_signature(code, function_name)
+            
+            # Compare: same set of parameter names
+            if spec_params and impl_params:
+                spec_param_names = set(spec_params.keys())
+                impl_param_names = set(impl_params.keys())
+                if spec_param_names != impl_param_names:
+                    extra = impl_param_names - spec_param_names
+                    missing = spec_param_names - impl_param_names
+                    signature_mismatch = {
+                        "spec_signature": spec_signature,
+                        "spec_params": spec_params,
+                        "impl_params": impl_params,
+                        "extra_params": list(extra),
+                        "missing_params": list(missing),
+                        "diagnosis": (
+                            f"SIGNATURE MISMATCH: Your implementation has parameters {list(impl_param_names)} "
+                            f"but the specification expects {list(spec_param_names)}. "
+                            f"Extra params: {list(extra)}. Missing params: {list(missing)}. "
+                            f"FIX: Rewrite the function to match the specification signature exactly: {spec_signature}"
+                        ),
+                    }
+        except Exception:
+            pass  # Don't fail on signature check errors; fall through to test execution
+    
+    # If signature mismatch detected, return early with clear diagnosis
+    if signature_mismatch:
+        return {
+            "passed": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "failed_tests": 0,
+            "failures": [],
+            "can_deliver": False,
+            "delivered_without_verification": False,
+            "signature_match": False,
+            "signature_mismatch": signature_mismatch,
+            "error": signature_mismatch["diagnosis"],
+        }
+    # ---- End SPEC SIGNATURE CHECK ----
     
     # Parse test cases
     parsed_tests = []
@@ -98,9 +155,17 @@ def verify_code(
         function_name = _detect_python_function(code)
     
     # Generate edge cases if requested
+    # CRITICAL: When spec_signature is provided, use IT for edge case generation
+    # instead of the model's implementation signature. This prevents gaming where
+    # the model passes edge cases that match its wrong signature.
     edge_cases = []
     if auto_edge_cases and function_name and language.lower() == "python":
-        edge_cases = _generate_edge_cases_for_function(code, function_name)
+        if spec_params and not signature_mismatch:
+            # Use spec signature for edge case generation (trust the spec, not the impl)
+            sig_str = f"def {function_name}({', '.join(f'{k}: {v}' for k, v in spec_params.items())}) -> Any"
+            edge_cases = generate_edge_cases(sig_str, "", "python")
+        else:
+            edge_cases = _generate_edge_cases_for_function(code, function_name)
     
     all_tests = parsed_tests + edge_cases
     
@@ -121,6 +186,7 @@ def verify_code(
     all_passed = result["passed_tests"] == result["total_tests"]
     result["can_deliver"] = all_passed
     result["delivered_without_verification"] = False
+    result["signature_match"] = True if spec_signature else None  # Only set if spec_signature was provided
     
     return result
 
@@ -365,6 +431,24 @@ def _detect_python_function(code: str) -> Optional[str]:
     import re
     match = re.search(r'def\s+(\w+)\s*\(', code)
     return match.group(1) if match else None
+
+
+def _get_impl_signature(code: str, function_name: str) -> Optional[dict]:
+    """Extract the parameter signature from a function implementation."""
+    try:
+        tree = ast.parse(code)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == function_name:
+                params = {}
+                for arg in node.args.args:
+                    if arg.annotation:
+                        params[arg.arg] = ast.unparse(arg.annotation)
+                    else:
+                        params[arg.arg] = "Any"
+                return params
+    except SyntaxError:
+        pass
+    return None
 
 
 def _generate_edge_cases_for_function(code: str, function_name: str) -> list:

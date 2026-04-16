@@ -58,6 +58,7 @@ TIMEOUT_SECONDS = 600  # 10 min per problem
 YAML_CONFIGS = {
     "baseline": os.path.join(CHATDEV_DIR, "yaml_instance", "ChatDev_v1_gw.yaml"),
     "mast": os.path.join(CHATDEV_DIR, "yaml_instance", "ChatDev_v1_mast_gw.yaml"),
+    "mcp": os.path.join(CHATDEV_DIR, "yaml_instance", "ChatDev_v1_mcp_enforced.yaml"),
 }
 
 # HumanEval problems to test (we select a varied subset)
@@ -368,7 +369,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="ChatDev whole-system validation (HumanEval benchmark)")
     parser.add_argument("--config",
-        choices=["baseline", "mast", "all"],
+        choices=["baseline", "mast", "mcp", "all"],
         default="all",
         help="Which config(s) to test")
     parser.add_argument("--subset", type=int, default=10,
@@ -389,7 +390,7 @@ def main():
         print(f"ERROR: ChatDev not found at {CHATDEV_DIR}")
         sys.exit(1)
     
-    configs_to_run = ["baseline", "mast"] if args.config == "all" else [args.config]
+    configs_to_run = ["baseline", "mast", "mcp"] if args.config == "all" else [args.config]
     
     for cfg in configs_to_run:
         if not os.path.isfile(YAML_CONFIGS[cfg]):
