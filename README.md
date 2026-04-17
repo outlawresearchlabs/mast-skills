@@ -2,40 +2,49 @@
 
 Tools for preventing the 14 failure modes from the MAST taxonomy (UC Berkeley paper: ["Why Do Multi-Agent LLM Systems Fail?"](https://arxiv.org/abs/2503.13657)).
 
-## Current Status: Pivoting to Structural Enforcement
+## Current Status: In-Process Middleware
 
-**Prompt-only MAST defenses (config files like SOUL.md, RULES.md, etc.) produce zero improvement on real task completion.** This is our key finding, documented in [FINDINGS.md](FINDINGS.md).
+**Prompt-only MAST defenses are unreliable -- they can help or hurt depending on the model.** On GPT-4o, verbose MAST prompts are actively harmful (-18pp). On Gemma4, even minimal prompts can interfere (-4pp). MCP-based structural enforcement is architecturally sound but too slow in practice.
 
-What we learned:
-- Static audit (14/14 DEFENDED) measures keyword presence, not behavior
-- Synthetic trigger tests (100% pass rate) measure whether a model obeys config instructions when explicitly tested -- not whether defenses work in practice
-- ChatDev HumanEval (the only real test): **MAST = Baseline = 3/5 pass@1. Zero improvement.**
-- All failures were FM-1.1 (Disobey Task Specification). The "Specification Adherence Protocol" in the config did not prevent a single failure.
+The viable path is **in-process Python middleware**: programmatically enforcing constraints inside the agent pipeline with zero LLM roundtrips. See [FINDINGS.md](FINDINGS.md) for full results.
 
-This confirms the paper's finding: **structural enforcement (topology, code execution, system gates) outperforms prompt engineering**. The paper showed +0.7pp for prompts vs +1.9pp for topology changes on ChatDev HumanEval.
+### Benchmark Results (25 HumanEval problems x 2 reps = 50 trials each)
 
-**We are now building structural enforcement.** See [ROADMAP.md](ROADMAP.md) for the plan.
+| Model | Baseline | MAST (verbose prompts) | Lean (minimal prompt) |
+|---|---|---|---|
+| GPT-4o | 88.0% (44/50) | 70.0% (-18pp) | 90.0% (+2pp) |
+| Gemma4:31b-cloud | 98.0% (49/50) | 96.0% (-2pp) | 94.0% (-4pp) |
+
+MCP structural enforcement: untestable (900s timeout on first problem)
+
+**Key finding**: Same intervention, opposite effects across models. No universal safe prompt exists.
+
+---
 
 ## What's Here
 
 ### Useful
 
-- **[skills/mast-taxonomy/](skills/mast-taxonomy/)** -- Complete reference for the 14 MAST failure modes, prevalence data, and solution strategies. This is genuinely useful for understanding where multi-agent systems fail.
-- **[mcp/mast-enforce/](mcp/mast-enforce/)** -- MCP server with 3 structural enforcement tools: `verify_code()`, `check_completion()`, `generate_edge_cases()`. Currently unit-tested but not yet integrated into a real agent loop.
+- **[skills/mast-taxonomy/](skills/mast-taxonomy/)** -- Complete reference for the 14 MAST failure modes, prevalence data, and solution strategies. Genuinely useful for understanding where multi-agent systems fail.
 - **[tests/test_harness.py](tests/test_harness.py)** -- Failure injection test harness. Still useful for FC1 (forgetfulness) regression testing. Should not be used as evidence of real defense effectiveness.
+- **[tests/chatdev_benchmark.py](tests/chatdev_benchmark.py)** -- Benchmark script for testing MAST configs against HumanEval through ChatDev pipeline. Supports baseline, MAST, lean, and structural configs with resume capability.
+- **[tests/results/](tests/results/)** -- Full raw results from all benchmark runs.
 
 ### Deprecated (Prompt-Only)
 
-- **skills/agent-workspace-interview/** -- Generates 6-file config suite. The configs are prompt suggestions that don't improve real task completion.
+- **skills/agent-workspace-interview/** -- Generates 6-file config suite. The configs are prompt suggestions that help some models and hurt others.
 - **skills/mast-audit/** -- Static keyword audit. Can tell you if defense phrases exist, not if they work.
+- **mcp/mast-enforce/** -- MCP server with verify_code(), check_completion(), generate_edge_cases(). Right concept, wrong mechanism -- tool call roundtrips are too slow. Should be reimplemented as in-process middleware.
 - **tests/test-configs/mast-hardened/** -- The 6-file MAST-hardened config suite. Preserved for reference.
-- **tests/chatdev-setup/ChatDev_v1_mast.yaml** -- MAST-hardened ChatDev config. Identical task completion to baseline.
+- **ChatDev MAST YAML configs** -- MAST-hardened ChatDev config. -18pp on GPT-4o.
 
-### Results
+### Results & Documentation
 
-- **[FINDINGS.md](FINDINGS.md)** -- Honest assessment of what works and what doesn't across all testing levels
-- **[tests/RESULTS.md](tests/RESULTS.md)** -- Full raw results including static audit, dynamic tests, HuggingFace validation, ChatDev whole-system, and MCP simulation
-- **[ROADMAP.md](ROADMAP.md)** -- Plan for structural enforcement approach
+- **[FINDINGS.md](FINDINGS.md)** -- Full experimental findings: benchmark results, analysis, costs, and the case for in-process middleware
+- **[ROADMAP.md](ROADMAP.md)** -- Plan for in-process middleware implementation
+- **[tests/RESULTS.md](tests/RESULTS.md)** -- Raw results from all testing levels
+
+---
 
 ## Key Findings Summary
 
@@ -44,11 +53,18 @@ This confirms the paper's finding: **structural enforcement (topology, code exec
 | Static audit | Keyword matching | 14/14 DEFENDED | Low -- measures text, not behavior |
 | Synthetic triggers (gemma4) | Failure injection | 14/14 PASS (+29.1% vs baseline) | Medium -- measures compliance, not real failure reduction |
 | Synthetic triggers (GPT-4o) | Failure injection | 14/14 PASS (+18.8% vs baseline) | Low -- strong model doesn't need MAST; baseline already 11/14 |
-| Whole-system (ChatDev) | HumanEval pass@1 | MAST = Baseline = 3/5 | **High -- this is what matters** |
+| Whole-system (ChatDev, 50 trials) | HumanEval pass@1 | See table above | **High -- this is what matters** |
+| MCP structural | HumanEval (1 attempt) | 900s timeout | N/A -- too slow to benchmark |
 
-### The gap between component and system tests
+### The prompt reliability problem
 
-On synthetic triggers, MAST-hardened gemma4 scores 14/14 (100%). On actual HumanEval tasks through ChatDev, it scores 3/5 (60%). The 14/14 number tells you the model will follow config instructions when explicitly tested. It does NOT tell you the defenses prevent real failures.
+Same prompt intervention has opposite effects:
+- MAST on GPT-4o: **-18pp** (harmful)
+- MAST on Gemma4: **-2pp** (negligible)
+- Lean on GPT-4o: **+2pp** (helpful)
+- Lean on Gemma4: **-4pp** (harmful)
+
+Prompt-based defenses cannot be relied upon as a safety mechanism.
 
 ### What prompts can do (FC1: forgetfulness)
 
@@ -62,24 +78,18 @@ On synthetic triggers, MAST-hardened gemma4 scores 14/14 (100%). On actual Human
 - FM-3.2 (no verification): Model can't execute code; "verify before delivery" produces superficial checks
 - FM-3.3 (incorrect verification): "Never trust hints" doesn't override the model's tendency to use available information
 
-## The Paper's Intervention Hierarchy
+---
 
-| Intervention | ChatDev ProgramDev | ChatDev HumanEval |
-|---|---|---|
-| Prompt improvements | +9.4% | +0.7pp |
-| Topology change (DAG → cyclic) | +15.6% | +1.9pp |
+## The Path Forward
 
-Our result: +0.0pp with prompt-only MAST defenses. Consistent with the paper.
+Prompt-based defenses are unreliable. MCP tool calls are too slow. The viable approach is **in-process Python middleware**:
 
-## Next Steps
+1. Hook into agent pipeline after code generation
+2. Run Python verification (signature matching, test execution, syntax validation)
+3. Set state gates programmatically in milliseconds
+4. Structural enforcement regardless of model behavior -- no LLM roundtrips, no model compliance dependency
 
-See [ROADMAP.md](ROADMAP.md) for the full plan. Short version:
-
-1. **Replace 6-file config suite** with a single minimal RULES.md (3 rules, ~350 chars, FC1 only)
-2. **Integrate MCP server** into ChatDev's agent loop so verification is structurally enforced
-3. **Implement cyclic topology** with CTO sign-off gate (the paper's most effective intervention)
-4. **Build spec-to-test pipeline** that formalizes specs as executable tests (structural FM-1.1 defense)
-5. **Generalize** to other agent frameworks (AG2, OpenAI Agents SDK, etc.)
+See [ROADMAP.md](ROADMAP.md) for the implementation plan.
 
 ## License
 

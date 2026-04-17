@@ -1,161 +1,91 @@
-# MAST Skills: Roadmap -- Structural Enforcement
+# MAST Skills: Roadmap -- In-Process Middleware
 
-## Direction Change
+## Direction
 
-We are pivoting from prompt-only defenses (SOUL.md etc.) to structural enforcement (MCP integration, topology changes, code execution). The evidence is clear: prompts suggest, architecture enforces. Only enforcement closes the gap on FM-1.1, FM-3.2, and FM-3.3.
+We are building in-process Python middleware for structural enforcement in multi-agent systems. The evidence is clear:
 
----
-
-## Phase 0: Archive Prompt-Only Work (Current)
-
-**Status**: Complete
-
-All prompt-only artifacts are preserved in the repo as-is. FINDINGS.md documents the honest results. No prompt-only artifacts will be deleted, but they are deprecated for FC2/FC3 defenses.
-
-**What we keep**:
-- `skills/mast-taxonomy/` -- the 14-mode knowledge base is still genuinely useful
-- `mcp/mast-enforce/` -- the MCP server is the starting point for structural work
-- `tests/test_harness.py` -- still useful for FC1 regression testing
-- All results data in `tests/results/`
-
-**What we deprecate**:
-- 6-file config suite (SOUL.md, RULES.md, PROMPT.md, MEMORY.md, BOOTSTRAP.md, USER.md) as a defense mechanism
-- `skills/agent-workspace-interview/` in its current form -- generates prompt-only configs
-- ChatDev MAST-hardened YAML as a standalone defense
-- Static audit as a validation method
+- Prompts are unreliable (help or hurt depending on model, -18pp to +2pp)
+- MCP tool calls are too slow (900s timeouts) and depend on model agency
+- In-process middleware provides structural guarantees with zero LLM overhead
 
 ---
 
-## Phase 1: Minimal FC1 Reminders + MCP Integration
+## Phase 1: In-Process Verification Middleware for ChatDev
 
-**Goal**: Replace 6-file config suite with a single minimal RULES.md that only covers what prompts can actually do (FC1 forgetfulness modes), then integrate the MCP server into a real agent loop.
+**Goal**: Replace MCP tool calls with Python code that runs inside ChatDev's pipeline.
 
-### 1a: Minimal Config
+### 1a: State Gate Hook
 
-Replace the 6-file config suite with a single file containing only FC1 reminders:
+ChatDev's `state_gate_manager.py` already checks `execution_context.global_state["verify_code_result"]`. We need to set this programmatically instead of via MCP tool calls.
 
-```
-# Agent Rules (FC1 Only)
+Implementation:
+1. Create `runtime/edge/conditions/inprocess_verify.py`
+2. After each Programmer code write, automatically run:
+   - Function signature extraction (AST parsing: function name, params, return type)
+   - Spec-to-signature matching (compare HumanEval spec to generated signature)
+   - Test extraction from docstring (parse `>>>` examples)
+   - Test execution (run extracted tests against generated code)
+3. Set `global_state["verify_code_result"]` = "PASS" or detailed failure message
+4. State gates block progression on failure (existing behavior, no changes needed)
 
-## Anti-Loop (FM-1.3)
-If you are about to repeat an action you already attempted, output <LOOP-DETECTED> and try a different approach.
+### 1b: Completion Check Hook
 
-## Clarification (FM-2.2)  
-If requirements are ambiguous, output <CLARIFY> and ask before implementing.
+After CPO sign-off, before delivery:
+1. Parse the task specification for acceptance criteria
+2. Check if generated code actually defines the expected entry point
+3. Run the full HumanEval test suite against the code
+4. Block delivery if any test fails
 
-## Termination (FM-1.5)
-Only declare done when ALL acceptance criteria are explicitly met. Never mark partial work as complete.
-```
+### 1c: Validation
 
-Three rules. ~350 chars instead of 5,310. Covers only what prompts can actually enforce.
-
-### 1b: MCP Server Integration
-
-The existing `mcp/mast-enforce/` server has 3 tools:
-- `verify_code(code, test_cases)` -- runs code against test cases, returns pass/fail
-- `check_completion(task, acceptance_criteria, current_state)` -- checks if criteria are met
-- `generate_edge_cases(function_spec, hints)` -- generates test cases beyond hints
-
-**Integration target**: ChatDev agent loop
-
-Current ChatDev flow:
-1. CEO defines task → CTO breaks down → Programmer writes code → Code Reviewer reviews → Test Engineer tests → CPO finalizes
-
-MAST-enforced flow:
-1. CEO defines task → CTO breaks down → **Programmer writes code → [MCP: verify_code]** → Code Reviewer reviews → **[MCP: check_completion before CPO]** → **[MCP: generate_edge_cases for Test Engineer]** → CPO finalizes
-
-The system blocks progression if verification fails. The agent cannot deliver unverified code because the next stage requires a passing `verify_code()` result.
-
-### 1c: Integration Architecture
-
-```
-ChatDev Agent Loop
-    |
-    v
-Programmer writes code
-    |
-    v
-[MCP Tool Call: verify_code(code, test_cases)]
-    |
-    ├── PASS → proceed to Code Reviewer
-    └── FAIL → return error to Programmer (must fix)
-    
-Code Reviewer reviews
-    |
-    v
-Before CPO sign-off:
-[MCP Tool Call: check_completion(task, criteria, state)]
-    |
-    ├── ALL_MET → proceed to CPO
-    └── NOT_MET → return to Programmer with missing criteria
-    
-Test Engineer phase:
-[MCP Tool Call: generate_edge_cases(spec, hints)]
-    |
-    v
-Test Engineer must run both hints AND generated edge cases
-    |
-    v
-[MCP Tool Call: verify_code(code, all_test_cases)]
-    |
-    ├── PASS → proceed
-    └── FAIL → return to Programmer
-```
-
-### 1d: Validation Criteria
-
-This phase succeeds if:
-- ChatDev with MCP enforcement achieves > 3/5 pass@1 on the same 5 HumanEval problems
-- Zero regressions on problems that baseline already passes
-- FM-1.1 failures are reduced (the structural block catches spec violations via verify_code running actual test cases)
+Benchmark against the same 25 HumanEval problems x 2 reps:
+- Compare: baseline, MAST (prompt), lean (prompt), in-process middleware
+- Success criteria: in-process middleware >= baseline on both GPT-4o and Gemma4
+- Target: catch at least some FM-1.1 failures that prompts miss (signature mismatch detection)
 
 ---
 
-## Phase 2: Topology Changes
+## Phase 2: Cyclic Topology with Programmatic Gates
 
-**Goal**: Implement the paper's most effective intervention -- changing the agent graph topology from DAG to cyclic with enforcement gates.
+**Goal**: Implement the paper's most effective intervention (topology change) using in-process enforcement instead of MCP.
 
 ### 2a: Cyclic Graph with CTO Gate
 
-Current ChatDev: DAG (CEO → CTO → Programmer → Code Reviewer → Test Engineer → CPO → done)
+Current ChatDev: DAG (CEO -> CTO -> Programmer -> Code Reviewer -> Test Engineer -> CPO -> done)
 
-Paper's effective topology: Cyclic (any agent can send back to a previous agent, CTO must confirm all reviews satisfied before delivery)
-
-Modified ChatDev topology:
+Proposed:
 ```
-CEO → CTO → Programmer ↔ Code Reviewer (cyclic: reviewer can send back)
-              ↓ (only when reviewer approves)
-         Test Engineer ↔ Programmer (cyclic: test failures go back)
-              ↓ (only when tests pass, verified by MCP)
-         CTO (gate: must confirm ALL criteria met)
-              ↓ (only when CTO approves)
-         CPO → done
+CEO -> CTO -> Programmer <-> Code Reviewer (cyclic: reviewer can send back)
+              | (only when reviewer approves AND in-process verify passes)
+         Test Engineer <-> Programmer (cyclic: test failures go back)
+              | (only when tests pass, verified in-process)
+         CTO (gate: must confirm ALL criteria met via in-process check)
+              | (only when CTO approves)
+         CPO -> done
 ```
 
-The CTO gate is structural enforcement of FM-1.5 (termination awareness). No agent can mark done without CTO sign-off, and CTO can't sign off until `check_completion()` returns ALL_MET.
+The CTO gate is structural enforcement of FM-1.5 (termination awareness). No agent can mark done without CTO sign-off, and CTO can't sign off until programmatic verification passes.
 
 ### 2b: Validation
 
-Test the cyclic topology against:
-- Same 5 HumanEval problems from Phase 1
-- Additional 10-15 HumanEval problems for statistical power
-- Compare: baseline DAG vs cyclic + MCP vs cyclic + MCP + minimal FC1 rules
+- 25+ HumanEval problems x 2 reps
+- Compare: baseline, in-process middleware (linear), in-process middleware (cyclic)
+- Target: topology + in-process should exceed all prompt-based approaches
 
 ---
 
 ## Phase 3: Specification Formalization
 
-**Goal**: Address FM-1.1 (Disobey Task Specification) at the structural level by formalizing specs into testable contracts.
+**Goal**: Address FM-1.1 (Disobey Task Specification) structurally by formalizing specs into testable contracts.
 
 ### 3a: Spec-to-Test Pipeline
 
-Current problem: Programmers read a natural language spec and implement what they think it means. When function name/type signatures contradict the spec, the name wins.
-
-Solution: Before the Programmer sees the task, the system:
-1. Extracts the function signature from the HumanEval problem
-2. Runs `generate_edge_cases()` against the spec to create a comprehensive test suite
-3. The Programmer receives BOTH the spec AND the test suite
-4. Code must pass the test suite via `verify_code()` before leaving the Programmer
+1. Before Programmer sees the task, extract:
+   - Function signature from HumanEval problem (name, params, return type)
+   - Docstring examples as test cases (parse `>>>` blocks)
+   - Generate edge cases programmatically (boundary values, type edge cases)
+2. Programmer receives BOTH the spec AND the extracted test suite
+3. Code must pass all tests via in-process verification before leaving Programmer
 
 This is structural FM-1.1 defense: the spec is encoded as executable tests, not as natural language suggestions.
 
@@ -168,28 +98,34 @@ This is structural FM-1.1 defense: the spec is encoded as executable tests, not 
 
 ## Phase 4: Multi-Agent Framework Generalization
 
-**Goal**: Make the structural enforcement approach work beyond ChatDev.
+**Goal**: Make in-process middleware work beyond ChatDev.
 
-### 4a: Agent Framework Adapter
+### 4a: Generic Middleware Interface
 
-Create a generic adapter layer that:
-- Hooks into any MCP-compatible agent framework
-- Injects `verify_code()`, `check_completion()`, `generate_edge_cases()` at configurable workflow points
-- Supports both cyclic and DAG topologies
+```python
+class VerificationMiddleware:
+    def after_code_write(self, code, spec, context):
+        """Run after any code generation step. Return pass/fail + details."""
+        ...
+
+    def before_delivery(self, code, spec, test_results, context):
+        """Run before any final delivery. Block if criteria unmet."""
+        ...
+```
+
+Adapters for specific frameworks (ChatDev, AG2, OpenAI Agents SDK) implement the hooks.
 
 ### 4b: Validated Frameworks
 
-- ChatDev (Python)
+- ChatDev (Python) -- primary
 - AG2/AutoGen (Python)
 - OpenAI Agents SDK (Python)
-- Claude Code / Anthropic CLI
 
 ### 4c: Benchmark Suite
 
-Run all validated frameworks against:
 - HumanEval (164 problems) -- code generation
-- SWE-Bench Lite -- real-world bug fixes
-- Compare prompt-only vs structural enforcement on each
+- Compare prompt-only vs in-process middleware on each framework
+- Document model-dependent effects and demonstrate middleware eliminates them
 
 ---
 
@@ -197,8 +133,8 @@ Run all validated frameworks against:
 
 | Phase | Scope | Estimated Effort |
 |---|---|---|
-| Phase 1 | Minimal config + MCP integration into ChatDev | 1-2 sessions |
-| Phase 2 | Cyclic topology + expanded HumanEval | 2-3 sessions |
+| Phase 1 | In-process verification for ChatDev | 1-2 sessions |
+| Phase 2 | Cyclic topology + expanded benchmark | 2-3 sessions |
 | Phase 3 | Spec formalization pipeline | 1-2 sessions |
 | Phase 4 | Multi-framework generalization | 3-5 sessions |
 
@@ -213,8 +149,8 @@ We will NOT claim success based on:
 
 We WILL claim success based on:
 - **Task completion rate** (pass@1 on HumanEval or equivalent benchmarks)
-- **Statistical significance** (minimum 20 problems, preference for 50+)
-- **Zero regressions** on problems baseline already solves
-- **Structural enforcement** preventing failures that prompts couldn't
+- **Statistical significance** (minimum 25 problems x 2 reps = 50 trials)
+- **Reliability across models** -- the intervention must not regress any model
+- **Structural enforcement preventing failures that prompts couldn't**
 
-The bar is: does the system actually complete more tasks correctly? Everything else is noise.
+The bar is: does the system actually complete more tasks correctly, reliably, across all tested models?
