@@ -63,6 +63,7 @@ MODEL_CONFIGS = {
             "mast": "ChatDev_v1_mast_gw.yaml",
             "mcp": "ChatDev_v1_mcp_enforced.yaml",
             "lean": "ChatDev_v1_lean_gw.yaml",
+            "inprocess": "ChatDev_v1_inprocess_gw.yaml",
         },
     },
     "gpt4o": {
@@ -75,6 +76,61 @@ MODEL_CONFIGS = {
             "mcp": "ChatDev_v1_mcp_gpt4o.yaml",
             "structural": "ChatDev_v1_structural_gpt4o.yaml",
             "lean": "ChatDev_v1_lean_gpt4o.yaml",
+            "inprocess": "ChatDev_v1_inprocess_gpt4o.yaml",
+        },
+    },
+    "gpt54": {
+        "model_name": "gpt-5.4",
+        "base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+        "api_key": os.environ.get("OPENAI_API_KEY", ""),
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_gpt54.yaml",
+            "inprocess": "ChatDev_v1_inprocess_gpt54.yaml",
+        },
+    },
+    "opus47": {
+        "model_name": "claude-opus-4-7",
+        "base_url": os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+        "api_key": os.environ.get("ANTHROPIC_API_KEY", ""),
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_opus.yaml",
+            "inprocess": "ChatDev_v1_inprocess_opus.yaml",
+        },
+    },
+    "glm51": {
+        "model_name": "glm-5.1:cloud",
+        "base_url": os.environ.get("BASE_URL", "http://127.0.0.1:11434/v1"),
+        "api_key": os.environ.get("API_KEY", "ollama"),
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_glm51.yaml",
+            "inprocess": "ChatDev_v1_inprocess_glm51.yaml",
+        },
+    },
+    "gemma4moe": {
+        "model_name": "gemma-4-26b-a4b-it",
+        "base_url": os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/"),
+        "api_key": os.environ.get("GEMINI_API_KEY", ""),
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_gemma4moe.yaml",
+            "inprocess": "ChatDev_v1_inprocess_gemma4moe.yaml",
+        },
+    },
+    "qwen35": {
+        "model_name": "qwen3.5:397b-cloud",
+        "base_url": os.environ.get("BASE_URL", "http://127.0.0.1:11434/v1"),
+        "api_key": os.environ.get("API_KEY", "ollama"),
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_qwen35.yaml",
+            "inprocess": "ChatDev_v1_inprocess_qwen35.yaml",
+        },
+    },
+    "minimax": {
+        "model_name": "MiniMax-M2.7",
+        "base_url": os.environ.get("MINIMAX_BASE_URL", "https://api.minimax.io/v1"),
+        "api_key": os.environ.get("MINIMAX_API_KEY", ""),
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_minimax.yaml",
+            "inprocess": "ChatDev_v1_inprocess_minimax.yaml",
         },
     },
 }
@@ -380,10 +436,10 @@ def analyze_failure_mode(task_id: str, code: str, problem: dict) -> str:
 def main():
     parser = argparse.ArgumentParser(
         description="ChatDev whole-system benchmark (publication-ready)")
-    parser.add_argument("--model", choices=["gemma4", "gpt4o"], required=True,
+    parser.add_argument("--model", choices=["gemma4", "gpt4o", "gpt54", "opus47", "glm51", "gemma4moe", "qwen35", "minimax"], required=True,
         help="Which model to test")
     parser.add_argument("--config",
-        choices=["baseline", "mast", "mcp", "structural", "lean", "all"],
+        choices=["baseline", "mast", "mcp", "structural", "lean", "inprocess", "all"],
         default="all",
         help="Which config(s) to test")
     parser.add_argument("--subset", type=int, default=20,
@@ -399,7 +455,7 @@ def main():
     args = parser.parse_args()
     
     mc = MODEL_CONFIGS[args.model]
-    configs_to_run = ["baseline", "mast", "structural", "lean"] if args.config == "all" else [args.config]
+    configs_to_run = ["baseline", "mast", "structural", "lean", "inprocess"] if args.config == "all" else [args.config]
     
     # Validate API key
     if not mc["api_key"]:
@@ -477,7 +533,7 @@ def main():
                     config_results[task_id] = existing[task_id]
                     continue
                 
-                task_name = f"bm_{task_id.replace('/', '_')}_{config_name}_r{rep}"
+                task_name = f"bm_{task_id.replace('/', '_')}_{args.model}_{config_name}_r{rep}"
                 task_prompt = format_chatdev_prompt(problem)
                 
                 print(f"  [{i+1}/{len(problems)}] {task_id} ({entry_point}) [{config_name} r{rep}]",
