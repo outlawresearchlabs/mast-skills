@@ -15,7 +15,7 @@ We now benchmark on **ProgramDev-v0** (30 application tasks: Chess, Tetris, Snak
 | Baseline | 25/30 (83%) | 18/30 (60%) | running | running |
 | Inprocess (state gates + syntax) | 28/30 (93%) | 20/30 (66%) | running | running |
 | **Lean + Inprocess** | **29/30 (96%)** | **21/30 (70%)** | running | running |
-| **Delta (lean vs baseline)** | **+13pp** | **+10pp** | -- | -- |
+| **Delta (lean vs baseline)** | **+4 tasks (+13pp)** | **+3 tasks (+10pp)** | -- | -- |
 
 Paper comparison (ChatDev, GPT-3.5-turbo):
 - Baseline: 25.0% | Improved prompts: 34.4% (+9.4pp) | Cyclic topology: 40.6% (+15.6pp)
