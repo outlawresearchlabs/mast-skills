@@ -8,14 +8,17 @@ We discovered our previous benchmarking on HumanEval was **testing the wrong thi
 
 We now benchmark on **ProgramDev-v0** (30 application tasks: Chess, Tetris, Snake, etc.) -- the same benchmark used in the MAST paper. Paper baseline (GPT-3.5-turbo): **25.0%**.
 
-### ProgramDev Results (MiniMax-M2.7, 30 tasks)
+### ProgramDev Results (30 application tasks each)
 
-| Config | Pass | Rate | Delta vs Baseline |
-|---|---|---|---|
-| Baseline | 24/30 | 80% | -- |
-| Inprocess (state gates + syntax validation) | 28/30 | 93% | **+13pp** |
-| **Lean + Inprocess (caveman MAST + state gates)** | **~29/30** | **~97%** | **+17pp** |
-| GLM-5.1 (all 3 configs) | running | -- | -- |
+| Config | MiniMax-M2.7 | GLM-5.1 | GPT-5.4 | Qwen 3.5 |
+|---|---|---|---|---|
+| Baseline | 25/30 (83%) | 18/30 (60%) | running | running |
+| Inprocess (state gates + syntax) | 28/30 (93%) | 20/30 (66%) | running | running |
+| **Lean + Inprocess** | **29/30 (96%)** | **21/30 (70%)** | running | running |
+| **Delta (lean vs baseline)** | **+13pp** | **+10pp** | -- | -- |
+
+Paper comparison (ChatDev, GPT-3.5-turbo):
+- Baseline: 25.0% | Improved prompts: 34.4% (+9.4pp) | Cyclic topology: 40.6% (+15.6pp)
 
 The **lean + inprocess** approach combines:
 1. **Compressed MAST rules** in agent prompts (caveman-style, ~150 tokens vs ~500 for verbose MAST)
