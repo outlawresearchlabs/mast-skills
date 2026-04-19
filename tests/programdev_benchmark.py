@@ -76,6 +76,7 @@ MODEL_CONFIGS = {
         "yaml_configs": {
             "baseline": "ChatDev_v1_baseline_gpt54.yaml",
             "inprocess": "ChatDev_v1_inprocess_gpt54.yaml",
+            "lean_inprocess": "ChatDev_v1_lean_inprocess_gpt54.yaml",
         },
     },
     "glm51": {
@@ -91,6 +92,7 @@ MODEL_CONFIGS = {
         "yaml_configs": {
             "baseline": "ChatDev_v1_baseline_qwen35.yaml",
             "inprocess": "ChatDev_v1_inprocess_qwen35.yaml",
+            "lean_inprocess": "ChatDev_v1_lean_inprocess_qwen35.yaml",
         },
     },
     "gemma4moe": {
