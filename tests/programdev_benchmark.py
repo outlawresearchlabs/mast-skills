@@ -63,6 +63,22 @@ TIMEOUT_SECONDS = 900  # 15 min per task (complex apps need more time)
 
 # Model configs - mirrors chatdev_benchmark.py
 MODEL_CONFIGS = {
+    "kimi25": {
+        "model_name": "kimi-k2.5:cloud",
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_kimi25.yaml",
+            "inprocess": "ChatDev_v1_inprocess_kimi25.yaml",
+            "lean_inprocess": "ChatDev_v1_lean_inprocess_kimi25.yaml",
+        },
+    },
+    "qwen36": {
+        "model_name": "qwen3.6-plus-2026-04-02",
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_qwen36.yaml",
+            "inprocess": "ChatDev_v1_inprocess_qwen36.yaml",
+            "lean_inprocess": "ChatDev_v1_lean_inprocess_qwen36.yaml",
+        },
+    },
     "minimax": {
         "model_name": "MiniMax-M2.7",
         "yaml_configs": {
@@ -290,11 +306,12 @@ def evaluate_executability(workspace: str) -> dict:
             return {"executable": True, "reason": f"missing dependency (exit {proc.returncode})",
                     "output": output}
 
-        # Apps that need CLI arguments show usage and exit 2 - still executable
-        if proc.returncode == 2 and any(x in combined for x in
+        # Apps that need CLI arguments show usage and exit - still executable
+        if proc.returncode in (1, 2) and any(x in combined.lower() for x in
                 ["usage:", "error: the following arguments", "argparse",
-                 "required:", "positional arguments"]):
-            return {"executable": True, "reason": "needs CLI arguments (exit 2)",
+                 "required:", "positional arguments", "provide", "argument",
+                 "command-line", "supply a", "specify a", "enter a"]):
+            return {"executable": True, "reason": f"needs CLI arguments (exit {proc.returncode})",
                     "output": output}
 
         # Apps that print help and exit are executable
@@ -442,7 +459,8 @@ def main():
         choices=list(MODEL_CONFIGS.keys()), required=True,
         help="Which model to test")
     parser.add_argument("--config",
-        choices=["baseline", "inprocess", "lean_inprocess", "all"], default="all",
+        choices=["baseline", "inprocess", "lean_inprocess", "all"],
+        default="all",
         help="Which config(s) to test")
     parser.add_argument("--subset", type=int, default=5,
         help="Number of tasks (5=easy validation, 30=full)")
