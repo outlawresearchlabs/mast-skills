@@ -68,6 +68,7 @@ MODEL_CONFIGS = {
         "yaml_configs": {
             "baseline": "ChatDev_v1_baseline_minimax.yaml",
             "inprocess": "ChatDev_v1_inprocess_minimax.yaml",
+            "lean_inprocess": "ChatDev_v1_lean_inprocess_minimax.yaml",
         },
     },
     "gpt54": {
@@ -82,6 +83,7 @@ MODEL_CONFIGS = {
         "yaml_configs": {
             "baseline": "ChatDev_v1_baseline_glm51.yaml",
             "inprocess": "ChatDev_v1_inprocess_glm51.yaml",
+            "lean_inprocess": "ChatDev_v1_lean_inprocess_glm51.yaml",
         },
     },
     "qwen35": {
@@ -195,26 +197,66 @@ def find_workspace(task_name: str) -> str:
     return ws if os.path.isdir(ws) else ""
 
 
+def _find_main_py(workspace: str) -> str:
+    """Find main.py in workspace, checking top-level and subdirectories."""
+    # Check top-level first
+    main_py = os.path.join(workspace, "main.py")
+    if os.path.exists(main_py):
+        return main_py
+
+    # Check immediate subdirectories (package layouts like budget_tracker/main.py)
+    for entry in sorted(os.listdir(workspace)):
+        subdir = os.path.join(workspace, entry)
+        if os.path.isdir(subdir) and not entry.startswith(".") and entry not in ("__pycache__", "attachments"):
+            # Prefer main.py, then __main__.py in subdirs
+            for candidate_name in ("main.py", "__main__.py"):
+                candidate = os.path.join(subdir, candidate_name)
+                if os.path.exists(candidate):
+                    return candidate
+
+    # Last resort: any non-test .py with __main__ block
+    for root, dirs, files in os.walk(workspace):
+        dirs[:] = [d for d in dirs if d not in ("__pycache__", ".venv", "attachments")]
+        for f in sorted(files):
+            if f.endswith(".py") and not f.startswith("test") and f != "debug.py":
+                fp = os.path.join(root, f)
+                try:
+                    with open(fp) as fh:
+                        if "__main__" in fh.read():
+                            return fp
+                except Exception:
+                    pass
+    return ""
+
+
 def evaluate_executability(workspace: str) -> dict:
     """Level 1: Does main.py run without crashing?"""
     if not workspace:
         return {"executable": False, "reason": "no workspace found", "output": ""}
 
-    main_py = os.path.join(workspace, "main.py")
-    if not os.path.exists(main_py):
-        # Try to find any .py with if __name__ == "__main__"
-        for f in os.listdir(workspace):
-            fp = os.path.join(workspace, f)
-            if f.endswith(".py") and os.path.isfile(fp):
-                try:
-                    with open(fp) as fh:
-                        if "__main__" in fh.read():
-                            main_py = fp
-                            break
-                except Exception:
-                    pass
-        if not os.path.exists(main_py):
-            return {"executable": False, "reason": "no main.py found", "output": ""}
+    main_py = _find_main_py(workspace)
+    if not main_py:
+        return {"executable": False, "reason": "no main.py found", "output": ""}
+
+    # Determine the correct cwd - if main.py is in a subdirectory,
+    # run from workspace so relative imports work
+    run_cwd = workspace
+
+    # Try to install requirements if they exist
+    req_file = os.path.join(workspace, "requirements.txt")
+    if not os.path.exists(req_file):
+        # Check subdirectories
+        for entry in os.listdir(workspace):
+            candidate = os.path.join(workspace, entry, "requirements.txt")
+            if os.path.exists(candidate):
+                req_file = candidate
+                break
+
+    if os.path.exists(req_file):
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "-q", "-r", req_file],
+            capture_output=True, timeout=60, cwd=workspace,
+        )
 
     try:
         proc = subprocess.run(
@@ -222,9 +264,10 @@ def evaluate_executability(workspace: str) -> dict:
             capture_output=True,
             text=True,
             timeout=30,
-            cwd=workspace,
+            cwd=run_cwd,
             stdin=subprocess.DEVNULL,
-            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
+                 "PYTHONPATH": workspace},
         )
         output = (proc.stdout or "")[-2000:] + (proc.stderr or "")[-2000:]
 
@@ -233,11 +276,16 @@ def evaluate_executability(workspace: str) -> dict:
             return {"executable": True, "reason": "clean exit", "output": output}
 
         stderr = proc.stderr or ""
-        combined = stdout + " " + stderr if (stdout := proc.stdout or "") else stderr
+        combined = (proc.stdout or "") + " " + stderr
         # Interactive apps that fail on no stdin are still "executable"
         if any(x in stderr for x in ["EOFError", "KeyboardInterrupt", "curses",
-                                       "pygame", "tkinter", "No module named"]):
+                                       "pygame", "tkinter"]):
             return {"executable": True, "reason": f"interactive app (exit {proc.returncode})",
+                    "output": output}
+
+        # Missing third-party modules - code is structurally correct
+        if "No module named" in stderr:
+            return {"executable": True, "reason": f"missing dependency (exit {proc.returncode})",
                     "output": output}
 
         # Apps that need CLI arguments show usage and exit 2 - still executable
@@ -268,20 +316,20 @@ def evaluate_completeness(workspace: str) -> dict:
 
     py_files = []
     total_lines = 0
-    has_main = False
+    has_main = bool(_find_main_py(workspace))
 
-    for f in os.listdir(workspace):
-        fp = os.path.join(workspace, f)
-        if f.endswith(".py") and os.path.isfile(fp) and ".venv" not in fp:
-            py_files.append(f)
-            try:
-                with open(fp) as fh:
-                    lines = len(fh.readlines())
-                    total_lines += lines
-            except Exception:
-                pass
-        if f == "main.py":
-            has_main = True
+    for root, dirs, files in os.walk(workspace):
+        dirs[:] = [d for d in dirs if d not in ("__pycache__", ".venv", "attachments")]
+        for f in files:
+            if f.endswith(".py"):
+                fp = os.path.join(root, f)
+                rel = os.path.relpath(fp, workspace)
+                py_files.append(rel)
+                try:
+                    with open(fp) as fh:
+                        total_lines += len(fh.readlines())
+                except Exception:
+                    pass
 
     return {
         "complete": len(py_files) > 0 and total_lines > 10,
@@ -298,15 +346,18 @@ def collect_generated_code(workspace: str) -> str:
         return ""
 
     code_parts = []
-    for f in sorted(os.listdir(workspace)):
-        fp = os.path.join(workspace, f)
-        if f.endswith(".py") and os.path.isfile(fp) and ".venv" not in fp:
-            try:
-                with open(fp, errors="replace") as fh:
-                    content = fh.read()
-                code_parts.append(f"# === {f} ===\n{content}")
-            except Exception:
-                pass
+    for root, dirs, files in os.walk(workspace):
+        dirs[:] = [d for d in dirs if d not in ("__pycache__", ".venv", "attachments")]
+        for f in sorted(files):
+            if f.endswith(".py"):
+                fp = os.path.join(root, f)
+                rel = os.path.relpath(fp, workspace)
+                try:
+                    with open(fp, errors="replace") as fh:
+                        content = fh.read()
+                    code_parts.append(f"# === {rel} ===\n{content}")
+                except Exception:
+                    pass
 
     return "\n\n".join(code_parts)[:15000]  # Cap at 15k chars for LLM context
 
@@ -389,7 +440,7 @@ def main():
         choices=list(MODEL_CONFIGS.keys()), required=True,
         help="Which model to test")
     parser.add_argument("--config",
-        choices=["baseline", "inprocess", "all"], default="all",
+        choices=["baseline", "inprocess", "lean_inprocess", "all"], default="all",
         help="Which config(s) to test")
     parser.add_argument("--subset", type=int, default=5,
         help="Number of tasks (5=easy validation, 30=full)")
