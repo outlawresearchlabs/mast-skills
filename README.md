@@ -49,15 +49,17 @@ Same model (MiniMax): Private Agent produces fewest outright failures (1) and hi
 
 **Statistical validation (4 reps):**
 
-Claude Code + Opus 4.6 executability across 4 reps:
+Claude Code + Opus 4.6 across 4 reps:
 
-| Rep | Pass | Fail | Rate |
+| Rep | Executability | Judge Strict PASS | Judge Score |
 |---|---|---|---|
-| r1 | 30/30 | 0 | 100% |
-| r2 | 27/30 | 3 | 90% |
-| r3 | 27/30 | 3 | 90% |
-| r4 | 27/30 | 3 | 90% |
-| **Mean** | **27.75/30** | **2.25** | **92.5%** |
+| r1 | 30/30 (100%) | 26/30 (86%) | 93% |
+| r2 | 27/30 (90%) | 25/30 (83%) | 90% |
+| r3 | 27/30 (90%) | 27/30 (90%) | 95% |
+| r4 | 27/30 (90%) | 25/30 (83%) | 92% |
+| **Mean** | **27.75/30 (92.5%)** | **25.75/30 (85.8%)** | **92.5%** |
+
+1 FAIL across 120 judge evaluations (4 reps x 30 tasks). Highly consistent.
 
 Additional reps in progress for Private Agent (MiniMax + GLM) and Hermes (MiniMax).
 
