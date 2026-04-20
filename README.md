@@ -19,7 +19,7 @@ Empirical study of multi-agent system (MAS) failures, extending the UC Berkeley 
 
 | Framework | Model | Pass Rate | Avg TTC |
 |---|---|---|---|
-| Claude Code | Opus 4.6 | 30/30 (100%) | ~100s |
+| Claude Code | Opus 4.6 | **27.75/30 (92.5%)** avg over 4 reps | ~100s |
 | **Private Agent** | MiniMax-M2.7 | 29/30 (96%) | 267s |
 | ChatDev lean+inproc | MiniMax-M2.7 | 29/30 (96%) | ~900s |
 | Claude Code | MiniMax-M2.7 | 28/30 (93%) | 273s |
@@ -47,7 +47,19 @@ Does the generated code actually **work as intended**, not just run without cras
 
 Same model (MiniMax): Private Agent produces fewest outright failures (1) and highest PASS+PARTIAL (96%). Claude Code Opus dominates overall with 0 FAILs and 86% strict PASS.
 
-Additional reps in progress for statistical validation (4 reps planned for key comparisons).
+**Statistical validation (4 reps):**
+
+Claude Code + Opus 4.6 executability across 4 reps:
+
+| Rep | Pass | Fail | Rate |
+|---|---|---|---|
+| r1 | 30/30 | 0 | 100% |
+| r2 | 27/30 | 3 | 90% |
+| r3 | 27/30 | 3 | 90% |
+| r4 | 27/30 | 3 | 90% |
+| **Mean** | **27.75/30** | **2.25** | **92.5%** |
+
+Additional reps in progress for Private Agent (MiniMax + GLM) and Hermes (MiniMax).
 
 ---
 
