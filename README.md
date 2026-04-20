@@ -8,27 +8,37 @@ We discovered our previous benchmarking on HumanEval was **testing the wrong thi
 
 We now benchmark on **ProgramDev-v0** (30 application tasks: Chess, Tetris, Snake, etc.) -- the same benchmark used in the MAST paper. Paper baseline (GPT-3.5-turbo): **25.0%**.
 
-### ProgramDev Results (30 application tasks each)
+### ProgramDev Results - Executability (30 application tasks each)
 
 | Config | Qwen 3.5 | MiniMax | Kimi 2.5 | GPT-5.4 | GLM-5.1 |
 |---|---|---|---|---|---|
-| Baseline | 28/30 (93%) | 25/30 (83%) | 20/25* (80%) | 21/30 (70%) | 18/30 (60%) |
-| Inprocess (gates + syntax) | 28/30 (93%) | 28/30 (93%) | 22/25* (88%) | 25/30 (83%) | 20/30 (66%) |
-| **Lean + Inprocess** | **28/30 (93%)** | **29/30 (96%)** | **23/27* (85%)** | **27/30 (90%)** | **21/30 (70%)** |
-| **Delta (lean vs baseline)** | **0 (+0pp)** | **+4 (+13pp)** | **+3* (+5pp)** | **+6 (+20pp)** | **+3 (+10pp)** |
+| Baseline | 28/30 (93%) | 25/30 (83%) | 24/30 (80%) | 21/30 (70%) | 18/30 (60%) |
+| Inprocess (gates + syntax) | 28/30 (93%) | 28/30 (93%) | 26/30 (86%) | 25/30 (83%) | 20/30 (66%) |
+| **Lean + Inprocess** | **28/30 (93%)** | **29/30 (96%)** | **26/30 (86%)** | **27/30 (90%)** | **21/30 (70%)** |
+| **Delta (lean vs baseline)** | **0 (+0pp)** | **+4 (+13pp)** | **+2 (+6pp)** | **+6 (+20pp)** | **+3 (+10pp)** |
 
-*Kimi 2.5 still running (~85% complete)
+### ProgramDev Results - LLM-as-Judge (MiniMax, GPT-5.4 as judge)
+
+Executability ("does it run?") is necessary but not sufficient. The LLM judge evaluates whether the generated code actually **works as intended**.
+
+| Metric | Baseline | Lean+Inprocess | Delta |
+|---|---|---|---|
+| **Strict PASS** (fully working) | 6/30 (20%) | 13/30 (43%) | **+7 tasks (+23pp)** |
+| **PASS + PARTIAL** (core logic works) | 22/30 (73%) | 22/30 (73%) | 0 |
+| **Weighted Score** (P=2, PARTIAL=1, F=0) | 47% | 58% | **+11pp** |
+
+**Key insight:** The middleware doesn't reduce failures (8 FAILs in both configs). It **upgrades PARTIALs to PASSes** -- polishing viable code into fully working applications. 7 tasks moved from "core logic present but incomplete" to "fully functional."
 
 Paper comparison (ChatDev, GPT-3.5-turbo):
 - Baseline: 25.0% | Improved prompts: 34.4% (+9.4pp) | Cyclic topology: 40.6% (+15.6pp)
 
 **Key findings:**
-- **GPT-5.4 shows the largest improvement: +6 tasks (+20pp)** from lean+inprocess
+- **GPT-5.4 shows the largest executability improvement: +6 tasks (+20pp)** from lean+inprocess
+- **MiniMax strict judge PASS more than doubled: 20% → 43%** with lean+inprocess
 - Strong models (Qwen 3.5 at 93%) see no benefit -- already near ceiling
 - Mid-tier models benefit most from structural enforcement
-- Consistent pattern across 5 models: lean+inprocess >= inprocess >= baseline
-- Qwen 3.6 dropped due to [DashScope API bug](https://github.com/QwenLM/Qwen3.6/issues/26) (reasoning_content serialization error)
-- Direct API testing (Zhipu for GLM, Moonshot for Kimi) showed same tool-calling patterns as Ollama -- model capability, not API path
+- The 8 persistent FAILs are being tested with CTO-gatekeeper topology (cyclic review)
+- Direct API testing (Zhipu for GLM, Moonshot for Kimi) confirmed tool-calling patterns are model capability, not API path
 
 The **lean + inprocess** approach combines:
 1. **Compressed MAST rules** in agent prompts (caveman-style, ~150 tokens vs ~500 for verbose MAST)

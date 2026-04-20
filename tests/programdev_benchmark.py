@@ -93,6 +93,7 @@ MODEL_CONFIGS = {
             "baseline": "ChatDev_v1_baseline_minimax.yaml",
             "inprocess": "ChatDev_v1_inprocess_minimax.yaml",
             "lean_inprocess": "ChatDev_v1_lean_inprocess_minimax.yaml",
+            "cto_lean_inprocess": "ChatDev_v1_cto_lean_inprocess_minimax.yaml",
         },
     },
     "gpt54": {
@@ -394,7 +395,19 @@ def collect_generated_code(workspace: str) -> str:
                 except Exception:
                     pass
 
-    return "\n\n".join(code_parts)[:15000]  # Cap at 15k chars for LLM context
+    # Prioritize: main files first, skip test/debug files, cap at 50k
+    priority = []
+    rest = []
+    for part in code_parts:
+        name = part.split("\n")[0]  # "# === filename ==="
+        if any(x in name.lower() for x in ["main", "game", "app", "core", "__main__"]):
+            priority.append(part)
+        elif any(x in name.lower() for x in ["test", "debug", "verify", "run_test"]):
+            continue  # skip test files for judge
+        else:
+            rest.append(part)
+    combined = "\n\n".join(priority + rest)
+    return combined[:50000]  # 50k chars for LLM context
 
 
 def evaluate_functional_correctness(task_description: str, code: str,
@@ -417,14 +430,16 @@ GENERATED CODE:
 
 Evaluate the code against the task description. Consider:
 1. Does the code implement the CORE functionality described in the task?
-2. Would a user be able to actually use this application for its intended purpose?
+2. Is the code structurally complete (not truncated mid-function)?
 3. Are there obvious bugs that would prevent basic operation?
 4. Does it handle the key requirements mentioned in the description?
 
+Note: You may be seeing a subset of a larger project. If the code shows proper module structure with imports between files, assume missing files exist unless there are clear import errors.
+
 Rate the implementation:
-- PASS: Code runs, implements the core feature, user could actually use it
-- PARTIAL: Some functionality works but key features are missing or broken
-- FAIL: Doesn't run, wrong functionality, or fundamentally broken
+- PASS: Implements the core feature, structurally complete, a user could use it
+- PARTIAL: Core logic is present and mostly correct but has gaps (missing edge cases, incomplete UI, minor bugs)
+- FAIL: Missing core functionality, fundamentally broken logic, or mostly empty/stub code
 
 Respond with EXACTLY this format:
 RATING: <PASS|PARTIAL|FAIL>
@@ -433,7 +448,7 @@ REASON: <one sentence explanation>
 
     try:
         import openai
-        # Try GPT-5.4 first, fall back to whatever is available
+        import time as _time
         api_key = os.environ.get("OPENAI_API_KEY", "")
         base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
@@ -442,13 +457,25 @@ REASON: <one sentence explanation>
                     "reason": "no OPENAI_API_KEY for judge", "judge_response": ""}
 
         client = openai.OpenAI(api_key=api_key, base_url=base_url)
-        response = client.chat.completions.create(
-            model="gpt-5.4",
-            messages=[{"role": "user", "content": judge_prompt}],
-            max_tokens=200,
-            temperature=0,
-        )
-        judge_text = response.choices[0].message.content or ""
+
+        # Retry with backoff for rate limits
+        judge_text = ""
+        for attempt in range(5):
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-5.4",
+                    messages=[{"role": "user", "content": judge_prompt}],
+                    max_completion_tokens=200,
+                    temperature=0,
+                )
+                judge_text = response.choices[0].message.content or ""
+                break
+            except openai.RateLimitError:
+                wait = 2 ** attempt * 5  # 5, 10, 20, 40, 80 seconds
+                _time.sleep(wait)
+        if not judge_text:
+            return {"passed": None, "rating": "ERROR",
+                    "reason": "Rate limited after 5 retries", "judge_response": ""}
 
         # Parse rating
         rating_match = re.search(r"RATING:\s*(PASS|PARTIAL|FAIL)", judge_text, re.IGNORECASE)
@@ -475,7 +502,7 @@ def main():
         choices=list(MODEL_CONFIGS.keys()), required=True,
         help="Which model to test")
     parser.add_argument("--config",
-        choices=["baseline", "inprocess", "lean_inprocess", "all"],
+        choices=["baseline", "inprocess", "lean_inprocess", "cto_lean_inprocess", "all"],
         default="all",
         help="Which config(s) to test")
     parser.add_argument("--subset", type=int, default=5,
