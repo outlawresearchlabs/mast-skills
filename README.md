@@ -21,16 +21,16 @@ Empirical study of multi-agent system (MAS) failures, extending the UC Berkeley 
 |---|---|---|---|
 | Claude Code | Opus 4.6 | 30/30 (100%) | ~100s |
 | **Private Agent** | MiniMax-M2.7 | 29/30 (96%) | 267s |
-| ChatDev lean+inprocess | MiniMax-M2.7 | 29/30 (96%) | ~900s |
+| ChatDev lean+inproc | MiniMax-M2.7 | 29/30 (96%) | ~900s |
 | Claude Code | MiniMax-M2.7 | 28/30 (93%) | 273s |
-| Kimi 2.5 (Ollama) | ChatDev lean+inprocess | 26/30 (86%) | ~900s |
+| ChatDev lean+inproc | GPT-5.4 | 27/30 (90%) | ~900s |
+| ChatDev lean+inproc | Kimi 2.5 | 26/30 (86%) | ~900s |
 | ChatDev baseline | MiniMax-M2.7 | 25/30 (83%) | ~900s |
-| Kimi 2.5 (Ollama) | ChatDev baseline | 24/30 (80%) | ~900s |
+| ChatDev baseline | Kimi 2.5 | 24/30 (80%) | ~900s |
 | Claude Code | GLM-5.1 | 23/30 (76%) | ~500s |
-| GPT-5.4 | ChatDev lean+inprocess | 27/30 (90%) | ~900s |
-| GPT-5.4 | ChatDev baseline | 21/30 (70%) | ~900s |
+| ChatDev baseline | GPT-5.4 | 21/30 (70%) | ~900s |
 | Hermes | GLM-5.1 | 21/30 (70%) | ~700s |
-| ChatDev lean+inprocess | GLM-5.1 | 21/30 (70%) | ~900s |
+| ChatDev lean+inproc | GLM-5.1 | 21/30 (70%) | ~900s |
 | ChatDev baseline | GLM-5.1 | 18/30 (60%) | ~900s |
 
 ### LLM-as-Judge Evaluation (GPT-5.4 as judge)

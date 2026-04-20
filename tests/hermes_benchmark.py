@@ -111,6 +111,7 @@ def main():
     parser.add_argument("--config", choices=["baseline", "lean", "verbose_mast"], default="baseline")
     parser.add_argument("--provider", default=None, help="Hermes provider (e.g. minimax, anthropic, ollama-cloud)")
     parser.add_argument("--model", default=None, help="Model to use (e.g. MiniMax-M2.7)")
+    parser.add_argument("--workspace", default=WORKSPACE_BASE, help="Override workspace directory")
     args = parser.parse_args()
 
     all_tasks = load_programdev_tasks(PROGRAMDEV_DATASET)
@@ -141,7 +142,7 @@ def main():
     for i, task in enumerate(tasks):
         name = task["project_name"]
         desc = task["description"]
-        workspace = os.path.join(WORKSPACE_BASE, f"{name}_{args.config}")
+        workspace = os.path.join(args.workspace, f"{name}_{args.config}")
 
         print(f"  [{i+1}/{len(tasks)}] {name}", end=" ", flush=True)
 
