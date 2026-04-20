@@ -100,7 +100,8 @@ Verification must occur at multiple levels:
 
 def run_claude_code(task_name: str, task_description: str,
                     workspace: str, timeout: int = 900,
-                    config: str = "baseline") -> dict:
+                    config: str = "baseline",
+                    ollama_model: str = None) -> dict:
     """Run a single task through Claude Code CLI."""
 
     os.makedirs(workspace, exist_ok=True)
@@ -127,10 +128,14 @@ def run_claude_code(task_name: str, task_description: str,
 
     start_time = datetime.now()
     try:
+        if ollama_model:
+            cmd = ["ollama", "launch", "claude", "--model", ollama_model,
+                   "--yes", "--", "-p", prompt, "--dangerously-skip-permissions"]
+        else:
+            cmd = ["claude", "-p", "--dangerously-skip-permissions",
+                   "--max-budget-usd", "5", prompt]
         proc = subprocess.run(
-            ["claude", "-p", "--dangerously-skip-permissions",
-             "--max-budget-usd", "5",
-             prompt],
+            cmd,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -172,6 +177,8 @@ def main():
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--easy-first", action="store_true")
     parser.add_argument("--config", choices=["baseline", "lean", "verbose_mast"], default="baseline")
+    parser.add_argument("--ollama-model", default=None, help="Use ollama launch claude --model (e.g. glm-5.1:cloud)")
+    parser.add_argument("--workspace", default=WORKSPACE_BASE, help="Override workspace directory")
     args = parser.parse_args()
 
     all_tasks = load_programdev_tasks(PROGRAMDEV_DATASET)
@@ -198,11 +205,11 @@ def main():
     for i, task in enumerate(tasks):
         name = task["project_name"]
         desc = task["description"]
-        workspace = os.path.join(WORKSPACE_BASE, name)
+        workspace = os.path.join(args.workspace, name)
 
         print(f"  [{i+1}/{len(tasks)}] {name}", end=" ", flush=True)
 
-        run_result = run_claude_code(name, desc, workspace, args.timeout, args.config)
+        run_result = run_claude_code(name, desc, workspace, args.timeout, args.config, args.ollama_model)
         exec_r = evaluate_executability(workspace)
         comp_r = evaluate_completeness(workspace)
         passed = exec_r["executable"] and comp_r["complete"]

@@ -75,26 +75,42 @@ Inspired by [Caveman](https://github.com/JuliusBrussee/caveman) -- compress prom
 
 Does multi-agent coordination actually help for application building? We tested single-agent tools on the same 30 ProgramDev tasks.
 
-| Agent | Model | Type | Exec | Avg Time | Status |
-|---|---|---|---|---|---|
-| **Claude Code** | Opus 4.6 | Single-agent | **~24/30 (92%+)** | **~100s** | 30 tasks running |
-| **Hermes Agent** | default | Single-agent | running | running | 5 tasks validating |
-| ChatDev lean+inproc | MiniMax | Multi-agent (9 roles) + middleware | 29/30 (96%) | ~900s | done |
-| ChatDev baseline | MiniMax | Multi-agent (9 roles) | 25/30 (83%) | ~900s | done |
+#### Executability (does it run?)
 
-**Key observations:**
-- Claude Code (single agent) is **20x faster** than ChatDev (multi-agent) at comparable pass rates
-- Claude Code writes **5x less code** -- leaner, no multi-agent bloat (170 LOC avg vs 800+ LOC)
-- Both Claude Code failures are false negatives (interactive apps our evaluator can't test)
-- **Caveat:** Claude Code uses Opus 4.6 (stronger model) vs ChatDev's MiniMax. To isolate framework vs model, we need same-model comparison (Hermes+MiniMax vs ChatDev+MiniMax -- in progress)
+| Framework | Model | Type | Exec | Avg Time |
+|---|---|---|---|---|
+| **Claude Code** | **Opus 4.6** | Single-agent | **30/30 (100%)** | **~100s** |
+| **Claude Code** | GLM-5.1 | Single-agent | 23/30 (76%) | ~500s |
+| **Hermes** | GLM-5.1 | Single-agent | 21/30 (70%) | ~700s |
+| ChatDev lean+inproc | MiniMax | Multi-agent + middleware | 29/30 (96%) | ~900s |
+| ChatDev lean+inproc | GLM-5.1 | Multi-agent + middleware | 21/30 (70%) | ~900s |
+| ChatDev baseline | MiniMax | Multi-agent | 25/30 (83%) | ~900s |
+| ChatDev baseline | GLM-5.1 | Multi-agent | 18/30 (60%) | ~900s |
 
-**What this suggests:**
-- For application building, a strong single agent may outperform a multi-agent system with weaker models
-- Multi-agent overhead (coordination, role-switching, review loops) costs 9x in time with marginal quality benefit
-- The MAST failure modes (step repetition, task derailment, reasoning-action mismatch) are **coordination failures by definition** -- a single agent doesn't have them
-- The value of multi-agent may be in *different* tasks (e.g., adversarial review, diverse perspectives) rather than application building
+#### LLM-as-Judge (does it actually work?)
 
-Each agent is tested with 3 prompt configs: baseline, lean (caveman MAST), verbose MAST.
+| Framework | Model | Strict PASS | PASS+PARTIAL | Score |
+|---|---|---|---|---|
+| **Claude Code** | **Opus 4.6** | **26/30 (86%)** | **30/30 (100%)** | **93%** |
+| ChatDev lean+inproc | MiniMax | 13/30 (43%) | 22/30 (73%) | 58% |
+| ChatDev baseline | MiniMax | 6/30 (20%) | 22/30 (73%) | 47% |
+
+#### Same-Model Comparison (GLM-5.1 across frameworks)
+
+| Framework | Type | Exec |
+|---|---|---|
+| **Claude Code** | Single-agent | **23/30 (76%)** |
+| Hermes | Single-agent | 21/30 (70%) |
+| ChatDev lean+inproc | Multi-agent + middleware | 21/30 (70%) |
+| ChatDev baseline | Multi-agent | 18/30 (60%) |
+
+**Key findings:**
+- **Claude Code (Opus) produces 2x better functional code** than ChatDev multi-agent with middleware (86% vs 43% judge PASS), while being **9x faster**
+- **Same model, single-agent wins:** Claude Code + GLM-5.1 (76%) beats ChatDev baseline + GLM-5.1 (60%) and matches ChatDev lean+inproc (70%)
+- **Multi-agent overhead hurts more than it helps:** 9 specialized roles + coordination costs 9x time with marginal quality benefit
+- **MAST failure modes are coordination failures** -- a single agent doesn't have step repetition, task derailment, or reasoning-action mismatch by definition
+- **Lean+inprocess middleware still helps ChatDev** (+10-20pp), but can't close the gap vs a good single-agent tool
+- The value of multi-agent may be in adversarial review or diverse perspectives, not application building
 
 ### HumanEval Results (Completed -- Wrong Benchmark)
 
