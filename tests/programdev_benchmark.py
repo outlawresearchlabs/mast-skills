@@ -71,6 +71,14 @@ MODEL_CONFIGS = {
             "lean_inprocess": "ChatDev_v1_lean_inprocess_kimi25.yaml",
         },
     },
+    "kimi25d": {
+        "model_name": "kimi-k2.5",
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_kimi25_direct.yaml",
+            "inprocess": "ChatDev_v1_inprocess_kimi25_direct.yaml",
+            "lean_inprocess": "ChatDev_v1_lean_inprocess_kimi25_direct.yaml",
+        },
+    },
     "qwen36": {
         "model_name": "qwen3.6-plus-2026-04-02",
         "yaml_configs": {
@@ -101,6 +109,14 @@ MODEL_CONFIGS = {
             "baseline": "ChatDev_v1_baseline_glm51.yaml",
             "inprocess": "ChatDev_v1_inprocess_glm51.yaml",
             "lean_inprocess": "ChatDev_v1_lean_inprocess_glm51.yaml",
+        },
+    },
+    "glm51z": {
+        "model_name": "glm-5.1",
+        "yaml_configs": {
+            "baseline": "ChatDev_v1_baseline_glm51_zhipu.yaml",
+            "inprocess": "ChatDev_v1_inprocess_glm51_zhipu.yaml",
+            "lean_inprocess": "ChatDev_v1_lean_inprocess_glm51_zhipu.yaml",
         },
     },
     "qwen35": {

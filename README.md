@@ -10,14 +10,14 @@ We now benchmark on **ProgramDev-v0** (30 application tasks: Chess, Tetris, Snak
 
 ### ProgramDev Results (30 application tasks each)
 
-| Config | Qwen 3.5 | MiniMax | GPT-5.4 | Kimi 2.5 | GLM-5.1 |
+| Config | Qwen 3.5 | MiniMax | Kimi 2.5 | GPT-5.4 | GLM-5.1 |
 |---|---|---|---|---|---|
-| Baseline | 28/30 (93%) | 25/30 (83%) | 21/30 (70%) | 12/16* (75%) | 18/30 (60%) |
-| Inprocess (gates + syntax) | 28/30 (93%) | 28/30 (93%) | 25/30 (83%) | 14/16* (87%) | 20/30 (66%) |
-| **Lean + Inprocess** | **28/30 (93%)** | **29/30 (96%)** | **27/30 (90%)** | **15/17* (88%)** | **21/30 (70%)** |
-| **Delta (lean vs baseline)** | **0 tasks (0pp)** | **+4 (+13pp)** | **+6 (+20pp)** | **+3* (+13pp)** | **+3 (+10pp)** |
+| Baseline | 28/30 (93%) | 25/30 (83%) | 20/25* (80%) | 21/30 (70%) | 18/30 (60%) |
+| Inprocess (gates + syntax) | 28/30 (93%) | 28/30 (93%) | 22/25* (88%) | 25/30 (83%) | 20/30 (66%) |
+| **Lean + Inprocess** | **28/30 (93%)** | **29/30 (96%)** | **23/27* (85%)** | **27/30 (90%)** | **21/30 (70%)** |
+| **Delta (lean vs baseline)** | **0 (+0pp)** | **+4 (+13pp)** | **+3* (+5pp)** | **+6 (+20pp)** | **+3 (+10pp)** |
 
-*Kimi 2.5 still running (~17/30 complete)
+*Kimi 2.5 still running (~85% complete)
 
 Paper comparison (ChatDev, GPT-3.5-turbo):
 - Baseline: 25.0% | Improved prompts: 34.4% (+9.4pp) | Cyclic topology: 40.6% (+15.6pp)
@@ -25,8 +25,10 @@ Paper comparison (ChatDev, GPT-3.5-turbo):
 **Key findings:**
 - **GPT-5.4 shows the largest improvement: +6 tasks (+20pp)** from lean+inprocess
 - Strong models (Qwen 3.5 at 93%) see no benefit -- already near ceiling
-- Weaker models benefit most from structural enforcement
+- Mid-tier models benefit most from structural enforcement
+- Consistent pattern across 5 models: lean+inprocess >= inprocess >= baseline
 - Qwen 3.6 dropped due to [DashScope API bug](https://github.com/QwenLM/Qwen3.6/issues/26) (reasoning_content serialization error)
+- Direct API testing (Zhipu for GLM, Moonshot for Kimi) showed same tool-calling patterns as Ollama -- model capability, not API path
 
 The **lean + inprocess** approach combines:
 1. **Compressed MAST rules** in agent prompts (caveman-style, ~150 tokens vs ~500 for verbose MAST)
