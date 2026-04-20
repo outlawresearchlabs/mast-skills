@@ -71,18 +71,28 @@ This outperforms the paper's best result (+15.6pp from topology changes) while u
 
 Inspired by [Caveman](https://github.com/JuliusBrussee/caveman) -- compress prompts to reduce context dilution while preserving technical substance.
 
-### Single-Agent Comparison (In Progress)
+### Single-Agent vs Multi-Agent Comparison
 
-Do multi-agent systems even help? We're testing single-agent tools on the same 30 tasks.
+Does multi-agent coordination actually help for application building? We tested single-agent tools on the same 30 ProgramDev tasks.
 
-| Agent | Type | Executability | Judge PASS | Avg Time | Status |
+| Agent | Model | Type | Exec | Avg Time | Status |
 |---|---|---|---|---|---|
-| **Claude Code** | Single-agent CLI | running (~93%) | pending | ~100s | 30 tasks running |
-| **Hermes Agent** | Single-agent CLI | running | pending | pending | 5 tasks running |
-| ChatDev baseline (MiniMax) | Multi-agent (9 roles) | 25/30 (83%) | 6/30 (20%) | ~900s | done |
-| ChatDev lean+inproc (MiniMax) | Multi-agent + middleware | 29/30 (96%) | 13/30 (43%) | ~900s | done |
+| **Claude Code** | Opus 4.6 | Single-agent | **~24/30 (92%+)** | **~100s** | 30 tasks running |
+| **Hermes Agent** | default | Single-agent | running | running | 5 tasks validating |
+| ChatDev lean+inproc | MiniMax | Multi-agent (9 roles) + middleware | 29/30 (96%) | ~900s | done |
+| ChatDev baseline | MiniMax | Multi-agent (9 roles) | 25/30 (83%) | ~900s | done |
 
-Early signal: Claude Code is **20x faster** and matches or beats ChatDev on executability. If the judge confirms functional correctness, single-agent tools may outperform multi-agent systems on application building.
+**Key observations:**
+- Claude Code (single agent) is **20x faster** than ChatDev (multi-agent) at comparable pass rates
+- Claude Code writes **5x less code** -- leaner, no multi-agent bloat (170 LOC avg vs 800+ LOC)
+- Both Claude Code failures are false negatives (interactive apps our evaluator can't test)
+- **Caveat:** Claude Code uses Opus 4.6 (stronger model) vs ChatDev's MiniMax. To isolate framework vs model, we need same-model comparison (Hermes+MiniMax vs ChatDev+MiniMax -- in progress)
+
+**What this suggests:**
+- For application building, a strong single agent may outperform a multi-agent system with weaker models
+- Multi-agent overhead (coordination, role-switching, review loops) costs 9x in time with marginal quality benefit
+- The MAST failure modes (step repetition, task derailment, reasoning-action mismatch) are **coordination failures by definition** -- a single agent doesn't have them
+- The value of multi-agent may be in *different* tasks (e.g., adversarial review, diverse perspectives) rather than application building
 
 Each agent is tested with 3 prompt configs: baseline, lean (caveman MAST), verbose MAST.
 

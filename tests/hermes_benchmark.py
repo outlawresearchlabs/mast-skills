@@ -33,7 +33,8 @@ WORKSPACE_BASE = "/tmp/hermes_benchmark"
 
 def run_hermes(task_name: str, task_description: str,
                workspace: str, timeout: int = 900,
-               config: str = "baseline") -> dict:
+               config: str = "baseline",
+               provider: str = None, model: str = None) -> dict:
     """Run a single task through Hermes Agent CLI."""
 
     os.makedirs(workspace, exist_ok=True)
@@ -60,8 +61,13 @@ def run_hermes(task_name: str, task_description: str,
 
     start_time = datetime.now()
     try:
+        cmd = ["hermes", "chat", "-q", prompt, "--yolo"]
+        if provider:
+            cmd.extend(["--provider", provider])
+        if model:
+            cmd.extend(["-m", model])
         proc = subprocess.run(
-            ["hermes", "chat", "-q", prompt, "--yolo"],
+            cmd,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -103,6 +109,8 @@ def main():
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--easy-first", action="store_true")
     parser.add_argument("--config", choices=["baseline", "lean", "verbose_mast"], default="baseline")
+    parser.add_argument("--provider", default=None, help="Hermes provider (e.g. minimax, anthropic, ollama-cloud)")
+    parser.add_argument("--model", default=None, help="Model to use (e.g. MiniMax-M2.7)")
     args = parser.parse_args()
 
     all_tasks = load_programdev_tasks(PROGRAMDEV_DATASET)
@@ -113,10 +121,14 @@ def main():
 
     tasks = all_tasks[:args.subset]
 
+    provider_label = args.provider or "default"
+    model_label = args.model or "default"
     print("=" * 60)
     print(f"PROGRAMDEV BENCHMARK - HERMES AGENT ({args.config})")
     print("=" * 60)
     print(f"Config: {args.config}")
+    print(f"Provider: {provider_label}")
+    print(f"Model: {model_label}")
     print(f"Tasks: {len(tasks)}")
     print(f"Timeout: {args.timeout}s")
     print(f"Workspace: {WORKSPACE_BASE}")
@@ -133,7 +145,7 @@ def main():
 
         print(f"  [{i+1}/{len(tasks)}] {name}", end=" ", flush=True)
 
-        run_result = run_hermes(name, desc, workspace, args.timeout, args.config)
+        run_result = run_hermes(name, desc, workspace, args.timeout, args.config, args.provider, args.model)
         exec_r = evaluate_executability(workspace)
         comp_r = evaluate_completeness(workspace)
         passed = exec_r["executable"] and comp_r["complete"]
