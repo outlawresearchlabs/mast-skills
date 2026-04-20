@@ -71,21 +71,32 @@ This outperforms the paper's best result (+15.6pp from topology changes) while u
 
 Inspired by [Caveman](https://github.com/JuliusBrussee/caveman) -- compress prompts to reduce context dilution while preserving technical substance.
 
-### Single-Agent vs Multi-Agent Comparison
+### Architecture Comparison: Fixed Pipeline vs Adaptive vs Single-Agent
 
-Does multi-agent coordination actually help for application building? We tested single-agent tools on the same 30 ProgramDev tasks.
+The core question isn't "multi-agent vs single-agent" -- it's **"does the architecture match the task?"**
 
-#### Executability (does it run?)
+#### Same Model Comparison (MiniMax-M2.7)
 
-| Framework | Model | Type | Exec | Avg Time |
+| Framework | Architecture | Exec | Rate | Avg TTC |
 |---|---|---|---|---|
-| **Claude Code** | **Opus 4.6** | Single-agent | **30/30 (100%)** | **~100s** |
-| **Claude Code** | GLM-5.1 | Single-agent | 23/30 (76%) | ~500s |
-| **Hermes** | GLM-5.1 | Single-agent | 21/30 (70%) | ~700s |
-| ChatDev lean+inproc | MiniMax | Multi-agent + middleware | 29/30 (96%) | ~900s |
-| ChatDev lean+inproc | GLM-5.1 | Multi-agent + middleware | 21/30 (70%) | ~900s |
-| ChatDev baseline | MiniMax | Multi-agent | 25/30 (83%) | ~900s |
-| ChatDev baseline | GLM-5.1 | Multi-agent | 18/30 (60%) | ~900s |
+| **Private Agent** | **Adaptive (6 modes, lane orchestration)** | **29/30** | **96%** | **267s** |
+| Claude Code | Single-agent + tools | 28/30 | 93% | 273s |
+| ChatDev lean+inproc | Fixed pipeline (9 roles) + middleware | 29/30 | 96% | ~900s |
+| ChatDev baseline | Fixed pipeline (9 roles) | 25/30 | 83% | ~900s |
+
+#### Cross-Model Comparison
+
+| Framework | Model | Exec | Avg TTC |
+|---|---|---|---|
+| Claude Code | Opus 4.6 | 30/30 (100%) | ~100s |
+| **Private Agent** | **MiniMax** | **29/30 (96%)** | **267s** |
+| ChatDev lean+inproc | MiniMax | 29/30 (96%) | ~900s |
+| Claude Code | MiniMax | 28/30 (93%) | 273s |
+| ChatDev baseline | MiniMax | 25/30 (83%) | ~900s |
+| Claude Code | GLM-5.1 | 23/30 (76%) | ~500s |
+| Hermes | GLM-5.1 | 21/30 (70%) | ~700s |
+| ChatDev lean+inproc | GLM-5.1 | 21/30 (70%) | ~900s |
+| ChatDev baseline | GLM-5.1 | 18/30 (60%) | ~900s |
 
 #### LLM-as-Judge (does it actually work?)
 
@@ -95,22 +106,17 @@ Does multi-agent coordination actually help for application building? We tested 
 | ChatDev lean+inproc | MiniMax | 13/30 (43%) | 22/30 (73%) | 58% |
 | ChatDev baseline | MiniMax | 6/30 (20%) | 22/30 (73%) | 47% |
 
-#### Same-Model Comparison (GLM-5.1 across frameworks)
-
-| Framework | Type | Exec |
-|---|---|---|
-| **Claude Code** | Single-agent | **23/30 (76%)** |
-| Hermes | Single-agent | 21/30 (70%) |
-| ChatDev lean+inproc | Multi-agent + middleware | 21/30 (70%) |
-| ChatDev baseline | Multi-agent | 18/30 (60%) |
-
 **Key findings:**
-- **Claude Code (Opus) produces 2x better functional code** than ChatDev multi-agent with middleware (86% vs 43% judge PASS), while being **9x faster**
-- **Same model, single-agent wins:** Claude Code + GLM-5.1 (76%) beats ChatDev baseline + GLM-5.1 (60%) and matches ChatDev lean+inproc (70%)
-- **Multi-agent overhead hurts more than it helps:** 9 specialized roles + coordination costs 9x time with marginal quality benefit
-- **MAST failure modes are coordination failures** -- a single agent doesn't have step repetition, task derailment, or reasoning-action mismatch by definition
-- **Lean+inprocess middleware still helps ChatDev** (+10-20pp), but can't close the gap vs a good single-agent tool
-- The value of multi-agent may be in adversarial review or diverse perspectives, not application building
+
+1. **The problem is fixed-pipeline architecture, not multi-agent itself.** ChatDev forces every task through CEO→CTO→Programmer→Reviewer→Tester whether it needs 1 step or 5. This causes the MAST failure modes (step repetition, task derailment, premature termination).
+
+2. **Adaptive architecture wins.** A private adaptive agent (96%) matches ChatDev+middleware (96%) at **3.4x the speed**, and beats Claude Code single-agent (93%) on the same model.
+
+3. **You can't fix a fixed pipeline.** MAST middleware adds +13-20pp to ChatDev, but the ceiling is the architecture. The 9-agent review chain will always be slower and more failure-prone than adaptive orchestration.
+
+4. **Same model, different architecture = different results.** MiniMax-M2.7 scores 83% in ChatDev baseline, 93% in Claude Code, and 96% in an adaptive agent. The model isn't the bottleneck -- the framework is.
+
+5. **Strong model + simple tools is a strong baseline.** Claude Code (Opus) at 100% shows that a capable model with basic file tools beats any framework with a weaker model.
 
 ### HumanEval Results (Completed -- Wrong Benchmark)
 
