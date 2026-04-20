@@ -71,6 +71,21 @@ This outperforms the paper's best result (+15.6pp from topology changes) while u
 
 Inspired by [Caveman](https://github.com/JuliusBrussee/caveman) -- compress prompts to reduce context dilution while preserving technical substance.
 
+### Single-Agent Comparison (In Progress)
+
+Do multi-agent systems even help? We're testing single-agent tools on the same 30 tasks.
+
+| Agent | Type | Executability | Judge PASS | Avg Time | Status |
+|---|---|---|---|---|---|
+| **Claude Code** | Single-agent CLI | running (~93%) | pending | ~100s | 30 tasks running |
+| **Hermes Agent** | Single-agent CLI | running | pending | pending | 5 tasks running |
+| ChatDev baseline (MiniMax) | Multi-agent (9 roles) | 25/30 (83%) | 6/30 (20%) | ~900s | done |
+| ChatDev lean+inproc (MiniMax) | Multi-agent + middleware | 29/30 (96%) | 13/30 (43%) | ~900s | done |
+
+Early signal: Claude Code is **20x faster** and matches or beats ChatDev on executability. If the judge confirms functional correctness, single-agent tools may outperform multi-agent systems on application building.
+
+Each agent is tested with 3 prompt configs: baseline, lean (caveman MAST), verbose MAST.
+
 ### HumanEval Results (Completed -- Wrong Benchmark)
 
 HumanEval measures coding ability, not multi-agent coordination. All models score 96-100% and middleware has no effect. These results are preserved for reference but do not validate or invalidate the MAST middleware approach.
