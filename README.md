@@ -10,7 +10,7 @@ Empirical study of multi-agent system (MAS) failures, extending the UC Berkeley 
 
 | Framework | Architecture | Pass Rate | Avg TTC |
 |---|---|---|---|
-| **Private Agent** | Adaptive (6 modes, lane orchestration) | **29/30 (96%)** | **267s** |
+| **Private Agent** | Adaptive (6 modes, lane orchestration) | **29.5/30 (98.3%)** avg 4 reps | **267s** |
 | Claude Code | Single-agent + tools | 28/30 (93%) | 273s |
 | ChatDev + lean+inprocess | Fixed pipeline (9 roles) + middleware | 29/30 (96%) | ~900s |
 | ChatDev baseline | Fixed pipeline (9 roles) | 25/30 (83%) | ~900s |
@@ -20,7 +20,8 @@ Empirical study of multi-agent system (MAS) failures, extending the UC Berkeley 
 | Framework | Model | Pass Rate | Avg TTC |
 |---|---|---|---|
 | Claude Code | Opus 4.6 | **27.75/30 (92.5%)** avg over 4 reps | ~100s |
-| **Private Agent** | MiniMax-M2.7 | 29/30 (96%) | 267s |
+| **Private Agent** | MiniMax-M2.7 | **29.5/30 (98.3%)** avg 4 reps | 267s |
+| Private Agent | GLM-5.1 | 25/30 (83%) | ~400s |
 | ChatDev lean+inproc | MiniMax-M2.7 | 29/30 (96%) | ~900s |
 | Claude Code | MiniMax-M2.7 | 28/30 (93%) | 273s |
 | ChatDev lean+inproc | GPT-5.4 | 27/30 (90%) | ~900s |
@@ -39,13 +40,16 @@ Does the generated code actually **work as intended**, not just run without cras
 
 | Framework | Model | Strict PASS | PASS+PARTIAL | Score | FAILs |
 |---|---|---|---|---|---|
-| Claude Code | **Opus 4.6** | **26/30 (86%)** | **30/30 (100%)** | **93%** | **0** |
-| **Private Agent** | MiniMax | 13/30 (43%) | **29/30 (96%)** | **70%** | **1** |
+| Claude Code | **Opus 4.6** | **25.75/30 (85.8%)** | **30/30 (100%)** | **92.5%** | **0.25** |
+| **Private Agent** | **GLM-5.1** | **19/25 (76%)** | **25/25 (100%)** | **88%** | **0** |
+| **Private Agent** | MiniMax | 11/30 (36.7%) | 29.5/30 (98%) | **67.5%** | 0.5 |
 | Claude Code | MiniMax | 12/29 (41%) | 26/29 (89%) | 66% | 3 |
 | ChatDev lean+inproc | MiniMax | 13/30 (43%) | 22/30 (73%) | 58% | 8 |
 | ChatDev baseline | MiniMax | 6/30 (20%) | 22/30 (73%) | 47% | 8 |
 
-Same model (MiniMax): Private Agent produces fewest outright failures (1) and highest PASS+PARTIAL (96%). Claude Code Opus dominates overall with 0 FAILs and 86% strict PASS.
+*Claude Code Opus and Private Agent MiniMax are 4-rep averages. Others are single rep.*
+
+Private Agent + GLM-5.1 achieves 88% judge score with **zero FAILs** - highest code quality on a non-Opus model. Private Agent MiniMax has the fewest FAILs (0.5 avg) and highest PASS+PARTIAL (98%).
 
 **Statistical validation (4 reps):**
 
@@ -61,7 +65,18 @@ Claude Code + Opus 4.6 across 4 reps:
 
 1 FAIL across 120 judge evaluations (4 reps x 30 tasks). Highly consistent.
 
-Additional reps in progress for Private Agent (MiniMax + GLM) and Hermes (MiniMax).
+Private Agent + MiniMax-M2.7 across 4 reps:
+
+| Metric | r1 | r2 | r3 | r4 | Mean |
+|---|---|---|---|---|---|
+| Executability | 29/30 (96%) | 29/30 (96%) | 30/30 (100%) | 30/30 (100%) | **29.5/30 (98.3%)** |
+| Judge Strict PASS | 13/30 (43%) | 9/30 (30%) | 12/30 (40%) | 10/30 (33%) | **11/30 (36.7%)** |
+| Judge Score | 70% | 63% | 70% | 67% | **67.5%** |
+| Judge FAILs | 1 | 1 | 0 | 0 | **0.5** |
+
+Private Agent + GLM-5.1 r1: 25/30 (83%) exec, 19/25 (76%) judge PASS, 88% score, 0 FAILs.
+
+Additional reps in progress for Private Agent GLM and Hermes MiniMax.
 
 ---
 
