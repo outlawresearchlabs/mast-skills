@@ -35,11 +35,19 @@ Empirical study of multi-agent system (MAS) failures, extending the UC Berkeley 
 
 ### LLM-as-Judge Evaluation (GPT-5.4 as judge)
 
-| Framework | Model | Strict PASS | PASS+PARTIAL | Score |
-|---|---|---|---|---|
-| Claude Code | Opus 4.6 | 26/30 (86%) | 30/30 (100%) | 93% |
-| ChatDev lean+inprocess | MiniMax | 13/30 (43%) | 22/30 (73%) | 58% |
-| ChatDev baseline | MiniMax | 6/30 (20%) | 22/30 (73%) | 47% |
+Does the generated code actually **work as intended**, not just run without crashing?
+
+| Framework | Model | Strict PASS | PASS+PARTIAL | Score | FAILs |
+|---|---|---|---|---|---|
+| Claude Code | **Opus 4.6** | **26/30 (86%)** | **30/30 (100%)** | **93%** | **0** |
+| **Private Agent** | MiniMax | 13/30 (43%) | **29/30 (96%)** | **70%** | **1** |
+| Claude Code | MiniMax | 12/29 (41%) | 26/29 (89%) | 66% | 3 |
+| ChatDev lean+inproc | MiniMax | 13/30 (43%) | 22/30 (73%) | 58% | 8 |
+| ChatDev baseline | MiniMax | 6/30 (20%) | 22/30 (73%) | 47% | 8 |
+
+Same model (MiniMax): Private Agent produces fewest outright failures (1) and highest PASS+PARTIAL (96%). Claude Code Opus dominates overall with 0 FAILs and 86% strict PASS.
+
+Additional reps in progress for statistical validation (4 reps planned for key comparisons).
 
 ---
 
