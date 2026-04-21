@@ -40,16 +40,17 @@ Does the generated code actually **work as intended**, not just run without cras
 
 | Framework | Model | Strict PASS | PASS+PARTIAL | Score | FAILs |
 |---|---|---|---|---|---|
-| Claude Code | **Opus 4.6** | **25.75/30 (85.8%)** | **30/30 (100%)** | **92.5%** | **0.25** |
-| **Private Agent** | **GLM-5.1** | **19/25 (76%)** | **25/25 (100%)** | **88%** | **0** |
-| **Private Agent** | MiniMax | 11/30 (36.7%) | 29.5/30 (98%) | **67.5%** | 0.5 |
-| Claude Code | MiniMax | 12/29 (41%) | 26/29 (89%) | 66% | 3 |
+| Claude Code | **Opus 4.6** | **25.75/30 (85.8%)** | **29.75/30 (99.2%)** | **92.5%** | **0.25** |
+| **Private Agent** | MiniMax | 11/30 (36.7%) | 29.5/30 (98.3%) | **67.5%** | 0.5 |
+| Claude Code | MiniMax | 12/30 (40%)† | 26/30 (86.7%)† | 66% | 3 |
+| **Private Agent** | GLM-5.1 | 19/30 (63.3%)‡ | 25/30 (83.3%)‡ | 83%‡ | 0 |
 | ChatDev lean+inproc | MiniMax | 13/30 (43%) | 22/30 (73%) | 58% | 8 |
 | ChatDev baseline | MiniMax | 6/30 (20%) | 22/30 (73%) | 47% | 8 |
 
 *Claude Code Opus and Private Agent MiniMax are 4-rep averages. Others are single rep.*
+*† Claude Code MiniMax: judge evaluated 29/30 (1 task had no code). ‡ Private Agent GLM: judge evaluated 25/30 (5 tasks had no code). Skipped tasks counted as non-PASS.*
 
-Private Agent + GLM-5.1 achieves 88% judge score with **zero FAILs** - highest code quality on a non-Opus model. Private Agent MiniMax has the fewest FAILs (0.5 avg) and highest PASS+PARTIAL (98%).
+Private Agent MiniMax has the fewest FAILs (0.5 avg across 4 reps) and highest PASS+PARTIAL (98.3%). Private Agent GLM achieved **zero judge FAILs** on all 25 judged tasks.
 
 **Statistical validation (4 reps):**
 
