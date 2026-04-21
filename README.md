@@ -77,7 +77,9 @@ Private Agent + GLM-5.1 (r1 complete, r2-r4 running):
 
 | Rep | Executability | Judge Strict PASS | Judge Score | Judge FAILs |
 |---|---|---|---|---|
-| r1 | 25/30 (83%) | 19/25 (76%) | 88% | 0 |
+| r1 | 25/30 (83%) | 19/30 (63%)* | 88%* | 0 |
+
+*Judge evaluated 25/30 tasks (5 had no code). Of judged tasks: 19/25 PASS, 6/25 PARTIAL, 0 FAIL.
 
 Additional reps in progress for Private Agent GLM and Hermes MiniMax.
 
