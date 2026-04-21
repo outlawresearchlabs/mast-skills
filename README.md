@@ -55,26 +55,29 @@ Private Agent + GLM-5.1 achieves 88% judge score with **zero FAILs** - highest c
 
 Claude Code + Opus 4.6 across 4 reps:
 
-| Rep | Executability | Judge Strict PASS | Judge Score |
-|---|---|---|---|
-| r1 | 30/30 (100%) | 26/30 (86%) | 93% |
-| r2 | 27/30 (90%) | 25/30 (83%) | 90% |
-| r3 | 27/30 (90%) | 27/30 (90%) | 95% |
-| r4 | 27/30 (90%) | 25/30 (83%) | 92% |
-| **Mean** | **27.75/30 (92.5%)** | **25.75/30 (85.8%)** | **92.5%** |
-
-1 FAIL across 120 judge evaluations (4 reps x 30 tasks). Highly consistent.
+| Rep | Executability | Judge Strict PASS | Judge Score | Judge FAILs |
+|---|---|---|---|---|
+| r1 | 30/30 (100%) | 26/30 (86%) | 93% | 0 |
+| r2 | 27/30 (90%) | 25/30 (83%) | 90% | 1 |
+| r3 | 27/30 (90%) | 27/30 (90%) | 95% | 0 |
+| r4 | 27/30 (90%) | 25/30 (83%) | 92% | 0 |
+| **Mean** | **27.75/30 (92.5%)** | **25.75/30 (85.8%)** | **92.5%** | **0.25** |
 
 Private Agent + MiniMax-M2.7 across 4 reps:
 
-| Metric | r1 | r2 | r3 | r4 | Mean |
-|---|---|---|---|---|---|
-| Executability | 29/30 (96%) | 29/30 (96%) | 30/30 (100%) | 30/30 (100%) | **29.5/30 (98.3%)** |
-| Judge Strict PASS | 13/30 (43%) | 9/30 (30%) | 12/30 (40%) | 10/30 (33%) | **11/30 (36.7%)** |
-| Judge Score | 70% | 63% | 70% | 67% | **67.5%** |
-| Judge FAILs | 1 | 1 | 0 | 0 | **0.5** |
+| Rep | Executability | Judge Strict PASS | Judge Score | Judge FAILs |
+|---|---|---|---|---|
+| r1 | 29/30 (96%) | 13/30 (43%) | 70% | 1 |
+| r2 | 29/30 (96%) | 9/30 (30%) | 63% | 1 |
+| r3 | 30/30 (100%) | 12/30 (40%) | 70% | 0 |
+| r4 | 30/30 (100%) | 10/30 (33%) | 67% | 0 |
+| **Mean** | **29.5/30 (98.3%)** | **11/30 (36.7%)** | **67.5%** | **0.5** |
 
-Private Agent + GLM-5.1 r1: 25/30 (83%) exec, 19/25 (76%) judge PASS, 88% score, 0 FAILs.
+Private Agent + GLM-5.1 (r1 complete, r2-r4 running):
+
+| Rep | Executability | Judge Strict PASS | Judge Score | Judge FAILs |
+|---|---|---|---|---|
+| r1 | 25/30 (83%) | 19/25 (76%) | 88% | 0 |
 
 Additional reps in progress for Private Agent GLM and Hermes MiniMax.
 
