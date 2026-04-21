@@ -113,15 +113,32 @@ We tried three approaches to fix ChatDev's fixed pipeline:
 
 Even the best combination (+20pp on GPT-5.4) can't close the gap vs adaptive architecture at the same speed.
 
-### 3. Architecture > model > prompts
+### 3. Prompts hurt more than they help (outside fixed pipelines)
+
+On ChatDev (fixed pipeline), lean prompts helped +2-6pp. But on adaptive frameworks:
+
+| Framework | Model | Baseline (4r) | Lean (4r) | Delta |
+|---|---|---|---|---|
+| Claude Code | Opus 4.6 | 92.5% | 92.5% | **0pp** |
+| Claude Code | MiniMax | 93%* | 90.0% | **-3pp** |
+| Claude Code | GLM-5.1 | 76%* | 64.2% | **-12pp** |
+| Private Agent | MiniMax | 98.3% | 92.5% | **-5.8pp** |
+
+*Single rep baselines — 4-rep baselines running for proper comparison.
+
+**Lean prompts hurt adaptive architectures** by -3 to -12pp. The frameworks already have built-in guidance (recovery recipes, tool conventions); external rules add noise.
+
+Verbose MAST on Claude Code MiniMax: ~90% (4r running) — roughly neutral vs baseline.
+
+### 4. Architecture > model > prompts
 
 The hierarchy of what matters:
 
-1. **Architecture** (adaptive vs fixed): +13-40pp depending on model
-2. **Model capability** (Opus vs GLM): +24-40pp depending on framework
-3. **Middleware** (state gates): +6-13pp within fixed pipeline
-4. **Prompt engineering** (lean rules): +2-6pp on top of middleware
-5. **Verbose prompts** (MAST): -18pp to +2pp (unreliable)
+1. **Architecture** (adaptive vs fixed): +5-16pp depending on model
+2. **Model capability** (Opus vs GLM): +10-28pp depending on framework
+3. **Middleware** (state gates): +6-13pp within fixed pipeline only
+4. **Prompt engineering**: -12pp to +6pp (helps fixed pipelines, hurts adaptive ones)
+5. **Verbose prompts** (MAST): -18pp to +2pp on ChatDev (unreliable)
 
 ### 4. Adaptive architecture matches fixed pipeline + middleware at 3.4x speed
 
