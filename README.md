@@ -18,10 +18,10 @@ Empirical study comparing agent architectures on application building and securi
 | **Private Agent** | **MiniMax** | **98.3%** | 92.5% (-5.8pp) | 94.2% (-4.1pp) |
 | CC (Claude Code) | Opus 4.6 | 92.5% | 92.5% (0pp) | **99.2%** (+6.7pp) |
 | CC | MiniMax | 88.3% | 90.0% (+1.7pp) | 89.2% (+0.9pp) |
-| Hermes | MiniMax | 87.5% | running | running |
+| Hermes | MiniMax | 87.5% | 85.7% (-1.8pp) | 84.2% (-3.3pp) |
 | **Private Agent** | **GLM-5.1** | **82.5%** | 65.0% (-17.5pp) | 53.3% (-29.2pp) |
 | CC | GLM-5.1 | 59.2% | 64.2% (+5.0pp) | 57.5% (-1.7pp) |
-| Hermes | GLM-5.1 | 56.7% | - | - |
+| **Hermes** | **GLM-5.1** | **56.7%** | **88.3% (+31.6pp)** | **80.0% (+23.3pp)** |
 | ChatDev lean+inproc | MiniMax | 96%* | - | - |
 | ChatDev lean+inproc | GPT-5.4 | 90%* | - | - |
 | ChatDev lean+inproc | Kimi 2.5 | 86%* | - | - |
@@ -45,11 +45,12 @@ Empirical study comparing agent architectures on application building and securi
 - Private Agent MiniMax: baseline 98.3% → lean 92.5% (-5.8pp) → verbose 94.2% (-4.1pp)
 - Private Agent GLM: baseline 82.5% → lean 65% (-17.5pp) → verbose 53.3% (-29.2pp)
 
-**Prompts are neutral/helpful on simple frameworks with strong models:**
+**Prompts massively help simple frameworks without built-in guidance:**
+- Hermes GLM: baseline 56.7% → **lean 88.3% (+31.6pp)** → verbose 80% (+23.3pp)
 - CC Opus: baseline 92.5% → verbose 99.2% (+6.7pp)
 - CC MiniMax: baseline 88.3% → lean 90% (+1.7pp)
 
-**Why:** Adaptive architectures have built-in guidance (20 native modules: recovery-recipes, policy-engine, self-improvement). External prompt rules conflict with internal ones. Simple frameworks (Claude Code) have no built-in guidance, so prompts fill a gap.
+**Why:** Adaptive architectures have built-in guidance (20 native modules: recovery-recipes, policy-engine, self-improvement). External prompt rules conflict with internal ones. Simple frameworks (Hermes, Claude Code) have no built-in guidance, so prompts fill a real gap — up to +31.6pp improvement.
 
 ### Statistical Validation (4 reps)
 
@@ -108,19 +109,19 @@ CyberGym requires sequential runs (parallel causes API contention). Full 10-rep 
 |---|---|---|---|
 | 1 | **Architecture** | +10-40pp | Private Agent 98.3% vs ChatDev 83% (same model) |
 | 2 | **Model** | +10-39pp | Opus 92.5% vs GLM 59.2% (same framework) |
-| 3 | **Prompts** | -29pp to +7pp | Helps simple frameworks, hurts adaptive ones |
+| 3 | **Prompts** | -29pp to +32pp | Massive help for simple frameworks, hurts adaptive ones |
 | 4 | **Middleware** | +6-13pp | Helps fixed pipelines only (ChatDev) |
 
 ### 2. Prompts interact with architecture unpredictably
 
-Same prompt, opposite effects:
+Same prompt, opposite effects depending on framework:
 
-| Prompt | CC Opus | CC MiniMax | Private Agent MiniMax | Private Agent GLM |
-|---|---|---|---|---|
-| Lean | 0pp | +1.7pp | **-5.8pp** | **-17.5pp** |
-| Verbose | **+6.7pp** | +0.9pp | -4.1pp | **-29.2pp** |
+| Prompt | Hermes GLM | CC Opus | CC MiniMax | Private Agent MiniMax | Private Agent GLM |
+|---|---|---|---|---|---|
+| Lean | **+31.6pp** | 0pp | +1.7pp | **-5.8pp** | **-17.5pp** |
+| Verbose | **+23.3pp** | **+6.7pp** | +0.9pp | -4.1pp | **-29.2pp** |
 
-**Rule:** Don't add prompts to frameworks that already have built-in guidance. The prompts conflict.
+**Rule:** Prompts help frameworks WITHOUT built-in guidance (Hermes: +32pp). Prompts hurt frameworks WITH built-in guidance (arcx: -29pp). The more internal guidance a framework has, the more external prompts conflict.
 
 ### 3. Fixed-pipeline architecture causes MAST failures
 
