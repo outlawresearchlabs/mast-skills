@@ -23,9 +23,21 @@ Empirical study comparing agent architectures on application building and securi
 | CC | GLM-5.1 | 59.2% | 64.2% (+5.0pp) | 57.5% (-1.7pp) |
 | Hermes | GLM-5.1 | 56.7% | - | - |
 | ChatDev lean+inproc | MiniMax | 96%* | - | - |
+| ChatDev lean+inproc | GPT-5.4 | 90%* | - | - |
+| ChatDev lean+inproc | Kimi 2.5 | 86%* | - | - |
+| ChatDev lean+inproc | Qwen 3.5 | 93%* | - | - |
+| ChatDev lean+inproc | GLM-5.1 | 70%* | - | - |
+| ChatDev inprocess | MiniMax | 93%* | - | - |
+| ChatDev inprocess | GPT-5.4 | 83%* | - | - |
+| ChatDev inprocess | Kimi 2.5 | 86%* | - | - |
+| ChatDev inprocess | GLM-5.1 | 66%* | - | - |
 | ChatDev baseline | MiniMax | 83%* | - | - |
+| ChatDev baseline | GPT-5.4 | 70%* | - | - |
+| ChatDev baseline | Kimi 2.5 | 80%* | - | - |
+| ChatDev baseline | Qwen 3.5 | 93%* | - | - |
+| ChatDev baseline | GLM-5.1 | 60%* | - | - |
 
-*ChatDev results are single rep.
+*ChatDev results are single rep. Paper reference (GPT-3.5-turbo): baseline 25%, +prompts 34.4%, +topology 40.6%.
 
 ### Key Prompt Findings
 
