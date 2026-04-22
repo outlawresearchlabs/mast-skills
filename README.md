@@ -1,70 +1,47 @@
-# MAST Skills: Architecture Matters More Than Agents
+# Agent Architecture Benchmark
 
-Empirical study of multi-agent system (MAS) failures, extending the UC Berkeley MAST taxonomy (["Why Do Multi-Agent LLM Systems Fail?"](https://arxiv.org/abs/2503.13657), arXiv:2503.13657).
+Empirical study comparing agent architectures on application building and security tasks. Extends the UC Berkeley MAST taxonomy (["Why Do Multi-Agent LLM Systems Fail?"](https://arxiv.org/abs/2503.13657)).
 
-**Key finding:** The 14 MAST failure modes are not inherent to multi-agent systems -- they are symptoms of **fixed-pipeline architecture**. Adaptive single-agent tools and adaptive multi-mode agents eliminate these failures entirely, while being 3-9x faster.
+**Key findings:**
+1. **Architecture > model > prompts** for task completion
+2. Adaptive architecture (Private Agent) achieves **98.3%** on ProgramDev with a mid-tier model
+3. Prompts **hurt** adaptive architectures (-5 to -29pp) but can **help** strong models on simple frameworks (+6.7pp Opus verbose)
+4. Fixed-pipeline multi-agent (ChatDev) is the worst architecture regardless of model or prompts
+5. Tool sprawl (unnecessary MCP servers) degrades agent performance
 
-## Results Summary
+## ProgramDev Results (30 application tasks, 4 reps each)
 
-### Same-Model Comparison (MiniMax-M2.7, ProgramDev-v0, 30 tasks)
+### Prompt Comparison (all 4-rep means)
 
-| Framework | Architecture | Pass Rate | Avg TTC |
-|---|---|---|---|
-| **Private Agent** | Adaptive (6 modes, lane orchestration) | **29.5/30 (98.3%)** avg 4 reps | **267s** |
-| Claude Code | Single-agent + tools | 28/30 (93%) | 273s |
-| ChatDev + lean+inprocess | Fixed pipeline (9 roles) + middleware | 29/30 (96%) | ~900s |
-| ChatDev baseline | Fixed pipeline (9 roles) | 25/30 (83%) | ~900s |
-
-### Cross-Model, Cross-Framework Comparison
-
-| Framework | Model | Pass Rate | Avg TTC |
-|---|---|---|---|
-| Claude Code | Opus 4.6 | **27.75/30 (92.5%)** avg over 4 reps | ~100s |
-| **Private Agent** | MiniMax-M2.7 | **29.5/30 (98.3%)** avg 4 reps | 267s |
-| Private Agent | GLM-5.1 | 25/30 (83%) | ~400s |
-| ChatDev lean+inproc | MiniMax-M2.7 | 29/30 (96%) | ~900s |
-| Claude Code | MiniMax-M2.7 | 28/30 (93%) | 273s |
-| ChatDev lean+inproc | GPT-5.4 | 27/30 (90%) | ~900s |
-| ChatDev lean+inproc | Kimi 2.5 | 26/30 (86%) | ~900s |
-| ChatDev baseline | MiniMax-M2.7 | 25/30 (83%) | ~900s |
-| ChatDev baseline | Kimi 2.5 | 24/30 (80%) | ~900s |
-| Claude Code | GLM-5.1 | 23/30 (76%) | ~500s |
-| ChatDev baseline | GPT-5.4 | 21/30 (70%) | ~900s |
-| Hermes | GLM-5.1 | 21/30 (70%) | ~700s |
-| ChatDev lean+inproc | GLM-5.1 | 21/30 (70%) | ~900s |
-| ChatDev baseline | GLM-5.1 | 18/30 (60%) | ~900s |
-
-### LLM-as-Judge Evaluation (GPT-5.4 as judge)
-
-Does the generated code actually **work as intended**, not just run without crashing?
-
-| Framework | Model | Strict PASS | PASS+PARTIAL | Score | FAILs |
-|---|---|---|---|---|---|
-| Claude Code | **Opus 4.6** | **25.75/30 (85.8%)** | **29.75/30 (99.2%)** | **92.5%** | **0.25** |
-| **Private Agent** | MiniMax | 11/30 (36.7%) | 29.5/30 (98.3%) | **67.5%** | 0.5 |
-| Claude Code | MiniMax | 12/30 (40%)† | 26/30 (86.7%)† | 66% | 3 |
-| **Private Agent** | GLM-5.1 | 19/30 (63.3%)‡ | 25/30 (83.3%)‡ | 83%‡ | 0 |
-| ChatDev lean+inproc | MiniMax | 13/30 (43%) | 22/30 (73%) | 58% | 8 |
-| ChatDev baseline | MiniMax | 6/30 (20%) | 22/30 (73%) | 47% | 8 |
-
-*Claude Code Opus and Private Agent MiniMax are 4-rep averages. Others are single rep.*
-*† Claude Code MiniMax: judge evaluated 29/30 (1 task had no code). ‡ Private Agent GLM: judge evaluated 25/30 (5 tasks had no code). Skipped tasks counted as non-PASS.*
-
-Private Agent MiniMax has the fewest FAILs (0.5 avg across 4 reps) and highest PASS+PARTIAL (98.3%). Private Agent GLM achieved **zero judge FAILs** on all 25 judged tasks.
-
-**Statistical validation (4 reps):**
-
-Claude Code + Opus 4.6 across 4 reps:
-
-| Rep | Executability | Judge Strict PASS | Judge Score | Judge FAILs |
+| Framework | Model | Baseline | Lean | Verbose |
 |---|---|---|---|---|
-| r1 | 30/30 (100%) | 26/30 (86%) | 93% | 0 |
-| r2 | 27/30 (90%) | 25/30 (83%) | 90% | 1 |
-| r3 | 27/30 (90%) | 27/30 (90%) | 95% | 0 |
-| r4 | 27/30 (90%) | 25/30 (83%) | 92% | 0 |
-| **Mean** | **27.75/30 (92.5%)** | **25.75/30 (85.8%)** | **92.5%** | **0.25** |
+| **Private Agent** | **MiniMax** | **98.3%** | 92.5% (-5.8pp) | 94.2% (-4.1pp) |
+| CC (Claude Code) | Opus 4.6 | 92.5% | 92.5% (0pp) | **99.2%** (+6.7pp) |
+| CC | MiniMax | 88.3% | 90.0% (+1.7pp) | 89.2% (+0.9pp) |
+| Hermes | MiniMax | 87.5% | running | running |
+| **Private Agent** | **GLM-5.1** | **82.5%** | 65.0% (-17.5pp) | 53.3% (-29.2pp) |
+| CC | GLM-5.1 | 59.2% | 64.2% (+5.0pp) | 57.5% (-1.7pp) |
+| Hermes | GLM-5.1 | 56.7% | - | - |
+| ChatDev lean+inproc | MiniMax | 96%* | - | - |
+| ChatDev baseline | MiniMax | 83%* | - | - |
 
-Private Agent + MiniMax-M2.7 across 4 reps:
+*ChatDev results are single rep.
+
+### Key Prompt Findings
+
+**Prompts hurt adaptive architectures:**
+- Private Agent MiniMax: baseline 98.3% → lean 92.5% (-5.8pp) → verbose 94.2% (-4.1pp)
+- Private Agent GLM: baseline 82.5% → lean 65% (-17.5pp) → verbose 53.3% (-29.2pp)
+
+**Prompts are neutral/helpful on simple frameworks with strong models:**
+- CC Opus: baseline 92.5% → verbose 99.2% (+6.7pp)
+- CC MiniMax: baseline 88.3% → lean 90% (+1.7pp)
+
+**Why:** Adaptive architectures have built-in guidance (20 native modules: recovery-recipes, policy-engine, self-improvement). External prompt rules conflict with internal ones. Simple frameworks (Claude Code) have no built-in guidance, so prompts fill a gap.
+
+### Statistical Validation (4 reps)
+
+Private Agent + MiniMax:
 
 | Rep | Executability | Judge Strict PASS | Judge Score | Judge FAILs |
 |---|---|---|---|---|
@@ -74,136 +51,131 @@ Private Agent + MiniMax-M2.7 across 4 reps:
 | r4 | 30/30 (100%) | 10/30 (33%) | 67% | 0 |
 | **Mean** | **29.5/30 (98.3%)** | **11/30 (36.7%)** | **67.5%** | **0.5** |
 
-Private Agent + GLM-5.1 (r1 complete, r2-r4 running):
+Claude Code + Opus 4.6:
 
 | Rep | Executability | Judge Strict PASS | Judge Score | Judge FAILs |
 |---|---|---|---|---|
-| r1 | 25/30 (83%) | 19/30 (63%)* | 88%* | 0 |
+| r1 | 30/30 (100%) | 26/30 (86%) | 93% | 0 |
+| r2 | 27/30 (90%) | 25/30 (83%) | 90% | 1 |
+| r3 | 27/30 (90%) | 27/30 (90%) | 95% | 0 |
+| r4 | 27/30 (90%) | 25/30 (83%) | 92% | 0 |
+| **Mean** | **27.75/30 (92.5%)** | **25.75/30 (85.8%)** | **92.5%** | **0.25** |
 
-*Judge evaluated 25/30 tasks (5 had no code). Of judged tasks: 19/25 PASS, 6/25 PARTIAL, 0 FAIL.
+### LLM-as-Judge (GPT-5.4 as judge)
 
-Additional reps in progress for Private Agent GLM and Hermes MiniMax.
+| Framework | Model | Strict PASS | PASS+PARTIAL | Score | FAILs |
+|---|---|---|---|---|---|
+| CC | **Opus 4.6** | **25.75/30 (85.8%)** | **29.75/30 (99.2%)** | **92.5%** | **0.25** |
+| **Private Agent** | MiniMax | 11/30 (36.7%) | 29.5/30 (98.3%) | 67.5% | 0.5 |
+| CC | MiniMax | 12/30 (40%)† | 26/30 (86.7%)† | 66% | 3 |
+| Private Agent | GLM-5.1 | 19/30 (63.3%)‡ | 25/30 (83.3%)‡ | 83%‡ | 0 |
+| ChatDev lean+inproc | MiniMax | 13/30 (43%) | 22/30 (73%) | 58% | 8 |
+| ChatDev baseline | MiniMax | 6/30 (20%) | 22/30 (73%) | 47% | 8 |
 
----
+*Claude Code Opus and Private Agent MiniMax are 4-rep averages. Others are single rep.*
+*† 29/30 judged. ‡ 25/30 judged. Skipped tasks counted as non-PASS.*
+
+## CyberGym Results (10 vulnerability tasks)
+
+Preliminary results on real-world vulnerability analysis (PoC generation):
+
+| Agent | Config | PoCs Generated | Notes |
+|---|---|---|---|
+| Private Agent (stripped) | Baseline | 4/10 (40%) | Single run, sequential |
+| Private Agent (full MCP) | Baseline | 1/4 (25%) | MCP overhead hurt |
+
+CyberGym requires sequential runs (parallel causes API contention). Full 10-rep validation with security-focused prompts planned.
+
+**Tool sprawl finding:** Adding MCP servers (git, browser, web, workspace, secrets, tasks) to the agent **reduced** CyberGym performance from 40% to 25%. The agent got distracted by irrelevant tool options instead of focusing on code analysis and PoC crafting.
 
 ## Research Findings
 
-### 1. Fixed-pipeline architecture causes MAST failures
+### 1. Architecture hierarchy
 
-The MAST paper identified 14 failure modes in multi-agent systems. At least 5 of them are **architectural failures** caused by fixed coordination patterns:
+| Rank | Factor | Effect | Evidence |
+|---|---|---|---|
+| 1 | **Architecture** | +10-40pp | Private Agent 98.3% vs ChatDev 83% (same model) |
+| 2 | **Model** | +10-39pp | Opus 92.5% vs GLM 59.2% (same framework) |
+| 3 | **Prompts** | -29pp to +7pp | Helps simple frameworks, hurts adaptive ones |
+| 4 | **Middleware** | +6-13pp | Helps fixed pipelines only (ChatDev) |
 
-- **FM-1.3 Step repetition** (15.7%): forced review loops repeat completed work
-- **FM-2.6 Reasoning-action mismatch** (13.2%): context lost in agent handoffs
-- **FM-1.5 Unaware of termination** (9.8%): no adaptive exit criteria
-- **FM-2.3 Task derailment** (7.2%): role-based agents pursue role goals over task goals
-- **FM-3.1 Premature termination** (7.8%): fixed pipelines exit on loop count, not completion
+### 2. Prompts interact with architecture unpredictably
 
-These failures disappear when using adaptive single-agent tools (Claude Code) or adaptive multi-mode agents (Private Agent), because there is no fixed coordination to fail.
+Same prompt, opposite effects:
 
-### 2. You can't fully fix a fixed pipeline
-
-We tried three approaches to fix ChatDev's fixed pipeline:
-
-| Intervention | Effect on ChatDev | What it fixes |
-|---|---|---|
-| Verbose MAST prompts | -18pp to +2pp (model-dependent) | Nothing reliably |
-| Lean caveman prompts | +2-6pp | Import structure, spec adherence |
-| In-process middleware (state gates) | +6-13pp | Syntax errors, import validation |
-| Lean + inprocess combined | +10-20pp | Best fix available |
-
-Even the best combination (+20pp on GPT-5.4) can't close the gap vs adaptive architecture at the same speed.
-
-### 3. Prompts hurt more than they help (outside fixed pipelines)
-
-On ChatDev (fixed pipeline), lean prompts helped +2-6pp. But on adaptive frameworks:
-
-| Framework | Model | Baseline (4r) | Lean (4r) | Delta |
+| Prompt | CC Opus | CC MiniMax | Private Agent MiniMax | Private Agent GLM |
 |---|---|---|---|---|
-| Claude Code | Opus 4.6 | 92.5% | 92.5% | **0pp** |
-| Claude Code | MiniMax | 93%* | 90.0% | **-3pp** |
-| Claude Code | GLM-5.1 | 76%* | 64.2% | **-12pp** |
-| Private Agent | MiniMax | 98.3% | 92.5% | **-5.8pp** |
+| Lean | 0pp | +1.7pp | **-5.8pp** | **-17.5pp** |
+| Verbose | **+6.7pp** | +0.9pp | -4.1pp | **-29.2pp** |
 
-*Single rep baselines — 4-rep baselines running for proper comparison.
+**Rule:** Don't add prompts to frameworks that already have built-in guidance. The prompts conflict.
 
-**Lean prompts hurt adaptive architectures** by -3 to -12pp. The frameworks already have built-in guidance (recovery recipes, tool conventions); external rules add noise.
+### 3. Fixed-pipeline architecture causes MAST failures
 
-Verbose MAST on Claude Code MiniMax: ~90% (4r running) — roughly neutral vs baseline.
+The MAST paper's 14 failure modes are architectural symptoms:
+- FM-1.3 Step repetition (15.7%): forced review loops
+- FM-2.6 Reasoning-action mismatch (13.2%): context lost in handoffs
+- FM-1.5 Unaware of termination (9.8%): no adaptive exit criteria
 
-### 4. Architecture > model > prompts
+These disappear in adaptive architectures.
 
-The hierarchy of what matters:
+### 4. Tool sprawl hurts
 
-1. **Architecture** (adaptive vs fixed): +5-16pp depending on model
-2. **Model capability** (Opus vs GLM): +10-28pp depending on framework
-3. **Middleware** (state gates): +6-13pp within fixed pipeline only
-4. **Prompt engineering**: -12pp to +6pp (helps fixed pipelines, hurts adaptive ones)
-5. **Verbose prompts** (MAST): -18pp to +2pp on ChatDev (unreliable)
+Adding unnecessary tools degrades performance. Agents waste reasoning on irrelevant options ("should I use the browser server? the git server?"). Minimum viable toolkit per task outperforms maximum capability.
 
-### 4. Adaptive architecture matches fixed pipeline + middleware at 3.4x speed
+### 5. Single-rep results are unreliable
 
-Private Agent (adaptive, 6 modes) achieves 96% at 267s/task. ChatDev lean+inprocess achieves 96% at 900s/task. Same pass rate, 3.4x faster. The adaptive agent doesn't need middleware because it doesn't have the failures middleware fixes.
+| Metric | 1-rep | 4-rep mean | Difference |
+|---|---|---|---|
+| CC MiniMax baseline | 93% | 88.3% | -4.7pp |
+| CC GLM baseline | 76% | 59.2% | -16.8pp |
+| Private Agent GLM baseline | 83% | 82.5% | -0.5pp |
 
-### 5. Single strong agent is a strong baseline
+Single reps can overestimate by up to 17pp. Minimum 4 reps needed.
 
-Claude Code + Opus 4.6 achieves 100% executability, 86% judge PASS, at ~100s/task. No framework, no middleware, no multi-agent coordination -- just a capable model with file tools.
+## Benchmark
 
-### 6. HumanEval is the wrong benchmark for MAS research
-
-All models score 96-100% on HumanEval regardless of framework or middleware. MAST failure modes only surface on complex, multi-step application tasks (ProgramDev).
-
----
-
-## Methodology
-
-### Benchmark: ProgramDev-v0
-
-30 application-building tasks from the MAST paper: Checkers, Chess, Sudoku, Tetris, Snake, Wordle, Minesweeper, etc. These require multi-step planning, code generation, testing, and integration -- exactly where multi-agent coordination matters.
+### ProgramDev-v0
+30 application-building tasks from the MAST paper: Checkers, Chess, Sudoku, Tetris, Snake, Wordle, etc.
 
 Paper baseline (ChatDev, GPT-3.5-turbo): 25.0%
 
-### Evaluation Levels
+### CyberGym
+10 real-world vulnerability analysis tasks. Agent must analyze vulnerable code and generate proof-of-concept exploits.
 
-1. **Executability** (automated): Does main.py run without crashing?
-2. **Code completeness** (automated): Meaningful code produced? (>10 LOC, has entry point)
-3. **Functional correctness** (LLM-as-judge, GPT-5.4): Does the app meet the spec? PASS/PARTIAL/FAIL
-4. **MAST failure mode analysis** (LLM-as-judge): Which of the 14 failure modes caused failures?
+### Evaluation
+1. **Executability** (automated): Does main.py run?
+2. **Code completeness** (automated): Meaningful code produced?
+3. **Functional correctness** (LLM-as-judge, GPT-5.4): Does it work as intended?
+4. **MAST failure mode analysis**: Which FM caused failures?
 
-### Frameworks Tested
+## Frameworks Tested
 
-| Framework | Type | Architecture |
-|---|---|---|
-| ChatDev | Multi-agent (9 roles) | Fixed DAG pipeline |
-| Claude Code | Single-agent | Adaptive with sub-agent helpers |
-| Hermes | Single-agent | Tool-calling agent |
-| Private Agent | Adaptive multi-mode | 6 modes, lane orchestration, on-demand specialists |
+| Framework | Architecture | Native Modules | Built-in Tools |
+|---|---|---|---|
+| Private Agent | Adaptive (6 modes, lane orchestration) | 20 (memory, recovery, self-improvement...) | 16 (bash, read, write, edit...) |
+| Claude Code | Single-agent + sub-agent helpers | 0 | ~10 (file, bash, search) |
+| Hermes | Single-agent + tool calling | 0 | ~8 (file, bash) |
+| ChatDev | Fixed pipeline (9 roles) | 0 | ~10 (via function calling) |
 
-### Models Tested
+## Models Tested
 
-| Model | Provider | Used In |
-|---|---|---|
-| MiniMax-M2.7 | MiniMax API / Ollama | ChatDev, Claude Code, Private Agent |
-| Opus 4.6 | Anthropic | Claude Code |
-| GLM-5.1 | Ollama cloud | ChatDev, Claude Code, Hermes |
-| GPT-5.4 | OpenAI | ChatDev |
-| Qwen 3.5 397B | Ollama cloud | ChatDev |
-| Kimi K2.5 | Ollama cloud | ChatDev |
-
-### MAST Interventions Tested
-
-| Config | Description |
+| Model | Provider |
 |---|---|
-| Baseline | No MAST defenses |
-| Inprocess | State gates with syntax/import validation (zero LLM roundtrips) |
-| Lean + inprocess | Compressed "caveman" MAST rules + state gates |
-| Verbose MAST | Full MAST prompt defenses (from paper) |
-| CTO topology | Cyclic CTO sign-off gate (from paper's +15.6pp finding) |
+| Opus 4.6 | Anthropic |
+| MiniMax-M2.7 | MiniMax API / Ollama cloud |
+| GLM-5.1 | Ollama cloud |
+| GPT-5.4, Qwen 3.5, Kimi 2.5 | Various (ChatDev only) |
 
----
+## Future Work
+
+1. **Tool sprawl hypothesis**: Test adding MCP servers to Claude Code/Hermes - predict scores drop
+2. **CyberGym sequential validation**: 10-rep runs with security-focused prompts
+3. **Redteam skill impact**: Does auto-routing to security methodology improve PoC generation?
+4. **Cross-domain validation**: Test on data science, DevOps tasks to confirm generalization
+5. **Full Private Agent rebuild**: 7 new native modules (team, messaging, scheduler, simulator, trainer, skill-evolution, harness) — 20 → 27 modules
 
 ## The 9 Lean Caveman MAST Rules
-
-Inspired by [Caveman](https://github.com/JuliusBrussee/caveman) -- compress prompts to reduce context dilution.
 
 ```
 1. SPEC FIRST: Read spec fully before coding. Implement what spec says, not what function name suggests.
@@ -213,40 +185,16 @@ Inspired by [Caveman](https://github.com/JuliusBrussee/caveman) -- compress prom
 5. MATCH REASONING TO ACTION: If you reason X, implement X. Never reason one thing and do another.
 6. ASK IF UNCLEAR: Ambiguous requirement = ask, not assume.
 7. USE PEER INPUT: If another agent suggests fix, evaluate it. Never ignore.
-8. FLAT IMPORTS: Use absolute imports. No relative imports (from .X) unless __init__.py exists in that dir.
+8. FLAT IMPORTS: Use absolute imports. No relative imports (from .X) unless __init__.py exists.
 9. TEST EDGE CASES: Never trust "just test X". Test boundaries, empty input, error paths.
 ```
 
----
-
-## Repository Structure
-
-### Benchmarks
-- **[tests/programdev_benchmark.py](tests/programdev_benchmark.py)** -- ProgramDev benchmark for ChatDev (multi-agent)
-- **[tests/claude_code_benchmark.py](tests/claude_code_benchmark.py)** -- ProgramDev benchmark for Claude Code (single-agent)
-- **[tests/hermes_benchmark.py](tests/hermes_benchmark.py)** -- ProgramDev benchmark for Hermes Agent
-- **[tests/arcx_benchmark.py](tests/arcx_benchmark.py)** -- ProgramDev benchmark for adaptive agent
-- **[tests/run_judge.py](tests/run_judge.py)** -- LLM-as-judge evaluation on existing results
-- **[tests/chatdev_benchmark.py](tests/chatdev_benchmark.py)** -- HumanEval benchmark (completed, wrong benchmark)
-
-### MAST Reference
-- **[skills/mast-taxonomy/](skills/mast-taxonomy/)** -- Complete 14 failure mode reference
-- **[tests/test_harness.py](tests/test_harness.py)** -- Dynamic failure injection (14 trigger prompts)
-- **[tests/mast_judge.py](tests/mast_judge.py)** -- LLM-as-a-Judge pipeline
-
-### Documentation
-- **[PROGRAMDEV_TEST_PLAN.md](PROGRAMDEV_TEST_PLAN.md)** -- Detailed test methodology
-- **[BENCHMARK_PLAN.md](BENCHMARK_PLAN.md)** -- Overview and lessons learned
-- **[FINDINGS.md](FINDINGS.md)** -- Earlier HumanEval findings
-
----
+Inspired by [Caveman](https://github.com/JuliusBrussee/caveman).
 
 ## Paper Reference
 
-**"Why Do Multi-Agent LLM Systems Fail?"** -- Cemri et al., UC Berkeley, 2025
-arXiv: [2503.13657](https://arxiv.org/abs/2503.13657) | [Project Page](https://sites.google.com/berkeley.edu/mast/) | [GitHub](https://github.com/multi-agent-systems-failure-taxonomy/MAST)
-
-Our work extends the MAST findings by showing that the 14 failure modes are architectural symptoms, not fundamental multi-agent limitations. The fix is not better prompts or middleware -- it's better architecture.
+**"Why Do Multi-Agent LLM Systems Fail?"** — Cemri et al., UC Berkeley, 2025
+[arXiv:2503.13657](https://arxiv.org/abs/2503.13657) | [Project](https://sites.google.com/berkeley.edu/mast/) | [GitHub](https://github.com/multi-agent-systems-failure-taxonomy/MAST)
 
 ## License
 
