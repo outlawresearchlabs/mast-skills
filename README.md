@@ -18,7 +18,7 @@ Empirical study comparing agent architectures on application building and securi
 | **Private Agent** | **MiniMax** | **98.3%** | 92.5% (-5.8pp) | 94.2% (-4.1pp) |
 | CC (Claude Code) | Opus 4.6 | 92.5% | 92.5% (0pp) | **99.2%** (+6.7pp) |
 | CC | MiniMax | 88.3% | 90.0% (+1.7pp) | 89.2% (+0.9pp) |
-| Hermes | MiniMax | 87.5% | 85.7% (-1.8pp) | 84.2% (-3.3pp) |
+| Hermes | MiniMax | 87.5% | 85.8% (-1.7pp) | 84.2% (-3.3pp) |
 | **Private Agent** | **GLM-5.1** | **82.5%** | 65.0% (-17.5pp) | 53.3% (-29.2pp) |
 | CC | GLM-5.1 | 59.2% | 64.2% (+5.0pp) | 57.5% (-1.7pp) |
 | **Hermes** | **GLM-5.1** | **56.7%** | **88.3% (+31.6pp)** | **80.0% (+23.3pp)** |
